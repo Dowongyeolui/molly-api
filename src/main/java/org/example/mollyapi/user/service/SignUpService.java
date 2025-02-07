@@ -22,7 +22,10 @@ public class SignUpService {
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
 
-
+    /***
+     * 회원가입
+     * @param signUpReqDto 사용자 정보
+     */
     @Transactional
     public void signUp(SignUpReqDto signUpReqDto) {
 

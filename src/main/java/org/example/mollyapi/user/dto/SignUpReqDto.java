@@ -47,6 +47,10 @@ public record SignUpReqDto(
         @Schema(description = "seller = true,  buyer = false", example = "true, false")
         Boolean isSeller
 ) {
+        /***
+         * Dto -> User 전환
+         * @return User
+         */
         public User toUser(){
                 return User.builder()
                         .nickname(nickname)
@@ -60,6 +64,12 @@ public record SignUpReqDto(
                         .build();
         }
 
+        /***
+         * Dto -> Auth 전환
+         * @param user auth fk
+         * @param password 암호화된 비밀번호
+         * @return Auth
+         */
         public Auth toAuth(User user, Password password){
                 return Auth.builder()
                         .email(email)
