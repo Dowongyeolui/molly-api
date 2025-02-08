@@ -27,7 +27,7 @@ public class SignInController {
 
     private final SignInService signInService;
     private static final String HEADER_STRING = "Authorization";
-    private static final String TOKEN_PREFIX = "Bearer ";
+    private static final String TOKEN_PREFIX = "Bearer";
 
     @PostMapping("/sign-in")
     @Operation( summary = "로그인", description = "사용자는 로그인을 할 수 있습니다. 토큰은 Header 를 참고해주세요")
@@ -42,10 +42,10 @@ public class SignInController {
         String token = signInService.signIn(signInReqDto);
         token = URLEncoder.encode(TOKEN_PREFIX + token, StandardCharsets.UTF_8);
         Cookie httpOnlyCookie = new Cookie(HEADER_STRING, token);
-        httpOnlyCookie.setHttpOnly(true); // HttpOnly 설정
+        httpOnlyCookie.setHttpOnly(true);
 //        httpOnlyCookie.setSecure(true); // HTTPS에서만 전송 (운영 환경에서는 true로 설정해야 함)
-        httpOnlyCookie.setPath("/"); // 쿠키의 유효 경로 (루트 경로로 설정)
-        httpOnlyCookie.setMaxAge(3600); // 쿠키 유효 시간 (초 단위, 예: 1시간)
+        httpOnlyCookie.setPath("/");
+        httpOnlyCookie.setMaxAge(3600);
 
         response.addCookie(httpOnlyCookie);
 
