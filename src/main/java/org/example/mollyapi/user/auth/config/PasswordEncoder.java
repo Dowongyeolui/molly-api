@@ -1,7 +1,7 @@
-package org.example.mollyapi.user.config;
+package org.example.mollyapi.user.auth.config;
 
-import org.example.mollyapi.user.entity.Auth;
-import org.example.mollyapi.user.entity.Password;
+import org.example.mollyapi.user.auth.entity.Auth;
+import org.example.mollyapi.user.auth.entity.Password;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

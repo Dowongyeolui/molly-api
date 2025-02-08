@@ -1,6 +1,6 @@
-package org.example.mollyapi.user.repository;
+package org.example.mollyapi.user.auth.repository;
 
-import org.example.mollyapi.user.entity.Auth;
+import org.example.mollyapi.user.auth.entity.Auth;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

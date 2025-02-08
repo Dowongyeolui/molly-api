@@ -1,9 +1,10 @@
-package org.example.mollyapi.user.entity;
+package org.example.mollyapi.user.auth.entity;
 
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.common.entity.Base;
+import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.type.Role;
 
 import java.time.LocalDateTime;
@@ -39,4 +40,7 @@ public class Auth extends Base {
     @ElementCollection(fetch = FetchType.EAGER)
     private List<Role> role;
 
+    public void updatedLastLoginAt() {
+        lastLoginAt = LocalDateTime.now();
+    }
 }

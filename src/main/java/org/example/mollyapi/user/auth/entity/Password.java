@@ -1,4 +1,4 @@
-package org.example.mollyapi.user.entity;
+package org.example.mollyapi.user.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
