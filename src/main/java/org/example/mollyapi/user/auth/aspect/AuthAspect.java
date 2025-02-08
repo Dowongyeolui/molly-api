@@ -19,7 +19,7 @@ public class AuthAspect {
     private final HttpServletRequest request;
 
     private static final String HEADER_STRING = "Authorization";
-    private static final String TOKEN_PREFIX = "Bearer ";
+    private static final String TOKEN_PREFIX = "Bearer";
 
     public AuthAspect(Jwt jwt, HttpServletRequest request) {
         this.jwt = jwt;
@@ -38,9 +38,8 @@ public class AuthAspect {
         String token = header.substring(TOKEN_PREFIX.length());
         validateToken(token);
 
-
         request.setAttribute("email", jwt.extractMemberEmail(token));
-        request.setAttribute("userId", jwt.extractMemberId(token));
+        request.setAttribute("userId", jwt.extractAuthId(token));
         request.setAttribute("role", jwt.extractRole(token));
     }
 

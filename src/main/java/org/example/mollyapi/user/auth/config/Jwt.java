@@ -46,7 +46,7 @@ public class Jwt {
         return getClaims(token).getSubject();
     }
 
-    public Long extractMemberId(String token) {
+    public Long extractAuthId(String token) {
         return getClaims(token).get("authId", Long.class);
     }
 
