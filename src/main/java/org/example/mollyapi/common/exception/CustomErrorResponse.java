@@ -20,7 +20,6 @@ public class CustomErrorResponse {
         return ResponseEntity.status(customException.getHttpStatus())
                 .body(CustomErrorResponse.builder()
                         .message(customException.getMessage())
-                        .httpStatus(customException.getHttpStatus())
                         .build());
     }
 }

@@ -21,7 +21,7 @@ public class SwaggerConfig {
                         .addSecuritySchemes("bearer-key",
                                 new io.swagger.v3.oas.models.security.SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")));
+                                        .scheme("Authorization")
+                                        .bearerFormat("Bearer")));
     }
 }
