@@ -21,6 +21,11 @@ public class SignInService {
     private final PasswordEncoder passwordEncoder;
     private final Jwt jwt;
 
+    /***
+     * 로그인
+     * @param signInReqDto 로그인 시도 요청 Info
+     * @return JWT
+     */
     public String signIn(SignInReqDto signInReqDto){
 
         Auth auth = authRepository.findByEmail(signInReqDto.email())
