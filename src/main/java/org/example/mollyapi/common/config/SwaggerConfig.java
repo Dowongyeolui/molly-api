@@ -3,6 +3,7 @@ package org.example.mollyapi.common.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,15 +14,18 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
+                .addSecurityItem(new SecurityRequirement().addList("JWT"))
+                .components(new Components().addSecuritySchemes("JWT", createAPIKeyScheme()))
                 .info(new Info()
                         .title("Molly~!! API")
                         .description("고양이 Molly API Documentation ")
-                        .version("0.0.1"))
-                .components(new Components()
-                        .addSecuritySchemes("bearer-key",
-                                new io.swagger.v3.oas.models.security.SecurityScheme()
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("Authorization")
-                                        .bearerFormat("Bearer")));
+                        .version("0.0.1"));
+
+    }
+
+    private SecurityScheme createAPIKeyScheme() {
+        return new SecurityScheme().type(SecurityScheme.Type.HTTP)
+                .bearerFormat("JWT")
+                .scheme("bearer");
     }
 }
