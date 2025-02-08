@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 public class CustomErrorResponse {
 
     private String message;
-    private HttpStatus httpStatus;
 
     public static ResponseEntity<CustomErrorResponse> toResponseEntity(CustomException customException) {
         return ResponseEntity.status(customException.getHttpStatus())
