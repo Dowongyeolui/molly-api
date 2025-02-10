@@ -29,10 +29,6 @@ public class Auth extends Base {
 
     private LocalDateTime lastLoginAt;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_AUTH_USER"))
-    private User user;
-
     @Embedded
     private Password password;
 

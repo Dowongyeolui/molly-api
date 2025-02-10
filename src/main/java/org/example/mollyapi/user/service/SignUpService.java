@@ -3,6 +3,7 @@ package org.example.mollyapi.user.service;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.user.auth.config.PasswordEncoder;
+import org.example.mollyapi.user.auth.entity.Auth;
 import org.example.mollyapi.user.dto.SignUpReqDto;
 import org.example.mollyapi.user.auth.entity.Password;
 import org.example.mollyapi.user.entity.User;
@@ -37,7 +38,8 @@ public class SignUpService {
 
         Password password = passwordEncoder.encrypt(signUpReqDto.email(), signUpReqDto.password());
 
-        User savedUser = userRepository.save(signUpReqDto.toUser());
-        authRepository.save(signUpReqDto.toAuth(savedUser, password));
+        Auth savedAuth = authRepository.save(signUpReqDto.toAuth(password));
+        User savedUser = userRepository.save(signUpReqDto.toUser(savedAuth));
+
     }
 }
