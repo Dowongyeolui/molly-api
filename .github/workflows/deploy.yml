@@ -13,6 +13,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Create application-secret.yml 파일 생성
+        run: |
+          echo "${{ secrets.APPLICATION_SECRET }}" > application-secret.yml
+          
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -26,7 +30,9 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t molly-backend .
+          docker build \
+          --build-arg APPLICATION_SECRET=application-secret.yml \
+          -t molly-backend .
 
       - name: Tag Docker Image
         run: |
