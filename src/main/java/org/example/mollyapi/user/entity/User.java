@@ -33,7 +33,7 @@ public class User extends Base {
     @Column(nullable = false)
     private Boolean flag;
 
-    private String profile_image;
+    private String profileImage;
 
     private LocalDate birth;
 

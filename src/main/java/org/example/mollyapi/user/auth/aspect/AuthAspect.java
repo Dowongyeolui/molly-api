@@ -39,7 +39,7 @@ public class AuthAspect {
         validateToken(token);
 
         request.setAttribute("email", jwt.extractMemberEmail(token));
-        request.setAttribute("userId", jwt.extractAuthId(token));
+        request.setAttribute("authId", jwt.extractAuthId(token));
         request.setAttribute("role", jwt.extractRole(token));
     }
 

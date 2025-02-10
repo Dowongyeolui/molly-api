@@ -59,7 +59,7 @@ public record SignUpReqDto(
                         .name(name)
                         .flag(false)
                         .point(0)
-                        .profile_image("Default Profile Image")
+                        .profileImage("Default Profile Image")
                         .sex(sex)
                         .auth(auth)
                         .build();
