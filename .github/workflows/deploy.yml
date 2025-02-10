@@ -77,7 +77,7 @@ jobs:
 
           # 컨테이너 실행
           echo "🚀 Running new container..."
-          docker run -d --name molly-backend -p 80:5000 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/molly-backend:latest
+          docker run -d --name molly-backend -p 8080:8080 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/molly-backend:latest
 
           echo "✅ Deployment complete!"
           EOF
