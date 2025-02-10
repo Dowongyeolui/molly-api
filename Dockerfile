@@ -18,8 +18,13 @@ WORKDIR /app
 # Copy the JAR file from the build stage
 COPY --from=build /app/build/libs/*.jar app.jar
 
+# Copy application-secret.yml into the container 
+ARG APPLICATION_SECRET_FILE=application-secret.yml
+COPY ${APPLICATION_SECRET_FILE} /app/config/application-secret.yml
+
+
 # Expose port 8080
 EXPOSE 8080
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.additional-location=file:/app/config/"]
