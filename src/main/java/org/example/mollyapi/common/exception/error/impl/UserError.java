@@ -13,7 +13,6 @@ public enum UserError implements CustomError {
     NOT_EXISTS_USER(HttpStatus.BAD_REQUEST, "없는 사용자 입니다.")
     ;
 
-
     private final HttpStatus status;
     private final String message;
 

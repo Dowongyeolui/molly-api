@@ -51,7 +51,9 @@ public record SignUpReqDto(
          * Dto -> User 전환
          * @return User
          */
+
         public User toUser(Auth auth){
+
                 return User.builder()
                         .nickname(nickname)
                         .cellPhone(cellPhone)
@@ -71,6 +73,7 @@ public record SignUpReqDto(
          * @return Auth
          */
         public Auth toAuth( Password password){
+
                 return Auth.builder()
                         .email(email)
                         .role(isSeller ? List.of(Role.BUY, Role.SELL) : List.of(Role.BUY))

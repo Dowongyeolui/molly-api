@@ -9,4 +9,5 @@ public interface UserRepository extends JpaRepository<User, Long>, UserCustomRep
 
     boolean existsByAuth_AuthId(Long authId);
 
+
 }
