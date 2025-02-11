@@ -38,6 +38,6 @@ public class SignInService {
         auth.updatedLastLoginAt();
         authRepository.save(auth);
 
-        return jwt.generateToken(auth.getAuthId(), auth.getEmail(), auth.getRole());
+        return jwt.generateToken(auth.getAuthId(), auth.getUser().getUserId() ,auth.getEmail(), auth.getRole());
     }
 }

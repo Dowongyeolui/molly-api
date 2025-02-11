@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.user.auth.entity.Auth;
+import org.example.mollyapi.user.dto.UpdateUserReqDto;
 import org.example.mollyapi.user.type.Sex;
 
 import java.time.LocalDate;
@@ -41,8 +42,44 @@ public class User extends Base {
 
     private String name;
 
-    @OneToOne
-    @JoinColumn(name = "auth_id", nullable = false, foreignKey = @ForeignKey(name = "FK_USER_AUTH"))
-    private Auth auth;
+
+
+
+    public boolean updateUser(UpdateUserReqDto updateUserReqDto){
+        boolean isUpdate = false;
+
+        if( !updateUserReqDto.name().isBlank()
+                && !this.name.equals(updateUserReqDto.name())){
+            this.name = updateUserReqDto.name();
+            isUpdate = true;
+        }
+        if(!updateUserReqDto.cellPhone().isBlank()
+                && !this.cellPhone.equals(updateUserReqDto.cellPhone())){
+            this.cellPhone = updateUserReqDto.cellPhone();
+            isUpdate = true;
+        }
+
+        if(!this.birth.isEqual(updateUserReqDto.birth())){
+            this.birth = updateUserReqDto.birth();
+            isUpdate = true;
+        }
+
+        if (!updateUserReqDto.nickname().isBlank()
+                && !this.nickname.equals(updateUserReqDto.nickname())){
+            this.nickname = updateUserReqDto.nickname();
+            isUpdate = true;
+        }
+
+        if (!this.sex.equals(updateUserReqDto.sex())){
+            this.sex = updateUserReqDto.sex();
+            isUpdate = true;
+        }
+
+        return isUpdate;
+    }
+
+    public void updateFlag(){
+        this.flag = true;
+    }
 
 }

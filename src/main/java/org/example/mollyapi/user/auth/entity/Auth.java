@@ -36,6 +36,10 @@ public class Auth extends Base {
     @ElementCollection(fetch = FetchType.EAGER)
     private List<Role> role;
 
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_AUTH_USER"))
+    private User user;
+
     public void updatedLastLoginAt() {
         lastLoginAt = LocalDateTime.now();
     }

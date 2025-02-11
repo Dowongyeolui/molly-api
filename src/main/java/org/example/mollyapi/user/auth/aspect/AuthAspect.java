@@ -43,6 +43,8 @@ public class AuthAspect {
         request.setAttribute("authId", jwt.extractAuthId(token));
 
         request.setAttribute("role", jwt.extractRole(token));
+
+        request.setAttribute("userId", jwt.extractUserId(token));
     }
 
     private void validateToken(String token) {

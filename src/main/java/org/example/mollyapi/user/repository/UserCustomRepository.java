@@ -9,4 +9,6 @@ public interface UserCustomRepository {
 
     GetUserSummaryInfoWithPointResDto getUserSummaryInfo(Long authId);
 
+    void deleteByFlagTrue();
+
 }

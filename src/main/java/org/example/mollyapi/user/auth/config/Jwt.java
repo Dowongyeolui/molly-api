@@ -30,10 +30,11 @@ public class Jwt {
         this.EXPIRATION_TIME = expirationTime;
     }
 
-    public String generateToken(Long authId, String email, List<Role> roles) {
+    public String generateToken(Long authId, Long userId,String email, List<Role> roles) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("authId", authId)
+                .claim("userId", userId)
                 .claim("email", email)
                 .claim("roles", roles)
                 .setIssuedAt(new Date())
@@ -48,6 +49,10 @@ public class Jwt {
 
     public Long extractAuthId(String token) {
         return getClaims(token).get("authId", Long.class);
+    }
+
+    public Long extractUserId(String token) {
+        return getClaims(token).get("userId", Long.class);
     }
 
     public Date extractExpiration(String token) {
