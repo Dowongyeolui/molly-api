@@ -82,4 +82,11 @@ public class User extends Base {
         this.flag = true;
     }
 
+    public void updatePoint(int amount) {
+        if (this.point == null) {
+            this.point = 0;
+        }
+        this.point += amount;
+    }
+
 }

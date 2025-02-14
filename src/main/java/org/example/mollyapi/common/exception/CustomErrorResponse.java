@@ -15,6 +15,13 @@ public class CustomErrorResponse {
 
     private String message;
 
+    /**
+     *5xx
+     *  - 501 결제 에러코드
+     *  - 50x
+     *
+     *  */
+
     public static ResponseEntity<CustomErrorResponse> toResponseEntity(CustomException customException) {
         return ResponseEntity.status(customException.getHttpStatus())
                 .body(CustomErrorResponse.builder()
