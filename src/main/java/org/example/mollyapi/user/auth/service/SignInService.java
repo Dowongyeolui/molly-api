@@ -5,6 +5,7 @@ import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.user.auth.config.Jwt;
 import org.example.mollyapi.user.auth.config.PasswordEncoder;
 import org.example.mollyapi.user.auth.dto.SignInReqDto;
+import org.example.mollyapi.user.auth.dto.SignInResDto;
 import org.example.mollyapi.user.auth.entity.Auth;
 import org.example.mollyapi.user.auth.repository.AuthRepository;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class SignInService {
      * @param signInReqDto 로그인 시도 요청 Info
      * @return JWT
      */
-    public String signIn(SignInReqDto signInReqDto){
+    public SignInResDto signIn(SignInReqDto signInReqDto){
 
         Auth auth = authRepository.findByEmail(signInReqDto.email())
                 .orElseThrow(() -> new CustomException(NOT_MATCH_AUTH));
@@ -38,6 +39,13 @@ public class SignInService {
         auth.updatedLastLoginAt();
         authRepository.save(auth);
 
-        return jwt.generateToken(auth.getAuthId(), auth.getUser().getUserId() ,auth.getEmail(), auth.getRole());
+
+        return new SignInResDto(
+                jwt.generateToken(auth.getAuthId(),
+                        auth.getUser().getUserId(),
+                        auth.getEmail(),
+                        auth.getRole()),
+                auth.getRole()
+        );
     }
 }
