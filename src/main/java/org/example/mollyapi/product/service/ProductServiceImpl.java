@@ -2,25 +2,23 @@ package org.example.mollyapi.product.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.product.dto.UploadFile;
-import org.example.mollyapi.product.dto.request.ProductItemReqDto;
-import org.example.mollyapi.product.dto.request.ProductRegisterReqDto;
+import org.example.mollyapi.product.dto.*;
 import org.example.mollyapi.product.dto.response.*;
 import org.example.mollyapi.product.entity.Category;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductImage;
 import org.example.mollyapi.product.entity.ProductItem;
 import org.example.mollyapi.product.file.FileStore;
+import org.example.mollyapi.product.repository.CategoryRepository;
+import org.example.mollyapi.product.repository.ProductItemRepository;
 import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -34,11 +32,14 @@ public class ProductServiceImpl implements ProductService {
     private final FileStore fileStore;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductItemRepository productItemRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     @Transactional
-    public Slice<ProductResDto> getAllProducts(Pageable pageable) {
-        Slice<Product> page = productRepository.findAll(pageable);
+    public Slice<ProductResDto> getAllProducts(ProductFilterCondition condition, Pageable pageable) {
+        Slice<ProductAndThumbnailDto> page = productRepository.findByCondition(condition, pageable);
+
         return page.map(this::convertToProductResDto);
     }
 
@@ -55,80 +56,118 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public ProductResDto updateProduct(Long userId, Long id, ProductRegisterReqDto productRegisterReqDto) {
-
-        // 유저 조회
-        User user = userRepository.findById(userId).orElseThrow(IllegalArgumentException::new);
-
+    public ProductResDto updateProduct(Long userId, Long id, ProductDto productDto, List<ProductItemDto> productItemDtoList) {
         // 업데이트 할 상품 조회
         Product product = productRepository.findById(id).orElseThrow(IllegalArgumentException::new);
 
-        // 유저-상품 검증
-        if (!userId.equals(product.getUser().getUserId())) {
-            throw new IllegalArgumentException();
-        }
-
-        List<ProductItem> productItems = productRegisterReqDto.items().stream().map(ProductItemReqDto::toEntity).toList();
+        User user = userRepository.findById(userId).orElseThrow(IllegalArgumentException::new);
 
         Product updated = product.update(
-                categoryService.getCategory(productRegisterReqDto.categories()),
-                productRegisterReqDto.brandName(),
-                productRegisterReqDto.productName(),
-                productRegisterReqDto.price(),
-                productRegisterReqDto.description(),
-                productItems,
-                new ArrayList<>()
+                categoryService.getCategory(productDto.categories()),
+                productDto.brandName(),
+                productDto.productName(),
+                productDto.price(),
+                productDto.description()
         );
+
+        if (productItemDtoList != null && !productItemDtoList.isEmpty()) {
+            updateProductItems(productItemDtoList);
+        }
+
         return convertToProductResDto(updated);
+    }
+
+    private void updateProductItems(List<ProductItemDto> productItemDtoList) {
+        productItemDtoList.forEach(productItemDto -> {
+            ProductItem item = productItemRepository.findById(productItemDto.id()).orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품 아이템입니다"));
+            item.updateQuantity(productItemDto.quantity());
+        });
     }
 
     @Override
     @Transactional
     public ProductResDto registerProduct(
             Long userId,
-            ProductRegisterReqDto productRegisterReqDto,
+            ProductDto productDto,
+            List<ProductItemDto> productItemDtoList,
             MultipartFile thumbnailImage,
             List<MultipartFile> productImages,
             List<MultipartFile> descriptionImages
     ) {
+        // 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        User user = userRepository.findById(userId).orElseThrow(IllegalArgumentException::new);
+        // 상품 엔티티 생성
+        Product product = createProduct(productDto, user);
 
+        // 이미지 리스트 생성 및 상품에 추가
+        registerThumbnail(product, thumbnailImage);
+        registerProductImages(product, productImages);
+        regsierDescriptionImages(product, descriptionImages);
+
+        // 상품 아이템 리스트 생성 및 상품에 추가
+        registerProductItems(product, productItemDtoList);
+
+        // 상품 저장 (연관된 이미지와 아이템도 함께 저장됨)
+        Product savedProduct = productRepository.save(product);
+
+        return convertToProductResDto(savedProduct);
+    }
+
+    private Product registerThumbnail(Product product, MultipartFile thumbnailImage) {
+        UploadFile uploadFile = fileStore.storeFile(thumbnailImage);
+        ProductImage thumbnail = ProductImage.createThumbnail(product, uploadFile);
+        product.addImage(thumbnail);
+        return product;
+    }
+
+    private Product registerProductImages(Product product, List<MultipartFile> productImages) {
+        List<UploadFile> uploadFiles = fileStore.storeFiles(productImages);
+        for (int i = 0; i < uploadFiles.size(); i++) {
+            UploadFile uploadFile = uploadFiles.get(i);
+            ProductImage productImage = ProductImage.createProductImage(product, uploadFile, i+1);
+            product.addImage(productImage);
+        }
+        return product;
+    }
+
+    private Product regsierDescriptionImages(Product product, List<MultipartFile> productImages) {
+        List<UploadFile> uploadFiles = fileStore.storeFiles(productImages);
+        for (int i = 0; i < uploadFiles.size(); i++) {
+            UploadFile uploadFile = uploadFiles.get(i);
+            ProductImage productImage = ProductImage.createDescriptionImage(product, uploadFile, i);
+            product.addImage(productImage);
+        }
+        return product;
+    }
+
+    private Product registerProductItems(Product product, List<ProductItemDto> productItemDtoList) {
+        for (ProductItemDto productItemDto : productItemDtoList) {
+            ProductItem productItem = ProductItem.builder()
+                    .color(productItemDto.color())
+                    .colorCode(productItemDto.colorCode())
+                    .size(productItemDto.size())
+                    .quantity(productItemDto.quantity())
+                    .product(product)
+                    .build();
+            product.addItem(productItem);
+        }
+        return product;
+    }
+
+    private Product createProduct(ProductDto productDto, User user) {
         // 카테고리 검색
-        Category category = categoryService.getCategory(productRegisterReqDto.categories());
+        Category category = categoryService.getCategory(productDto.categories());
 
-        // 파일 저장
-        UploadFile uploadThumbnail = fileStore.storeFile(thumbnailImage);
-        List<UploadFile> uploadProductImages = fileStore.storeFiles(productImages);
-        List<UploadFile> uploadDescriptionImages = fileStore.storeFiles(descriptionImages);
-
-        // 저장된 파일로 상품 이미지 생성
-        List<ProductImage> images = new ArrayList<>();
-        images.add(ProductImage.createThumbnail(null, uploadThumbnail));
-        for (int i = 0; i < uploadProductImages.size(); i++) {
-            images.add(ProductImage.createProductImage(null, uploadProductImages.get(i), i+1));
-        }
-
-        for (int i = 0; i < uploadDescriptionImages.size(); i++) {
-            images.add(ProductImage.createDescriptionImage(null, uploadDescriptionImages.get(i), i));
-        }
-
-        // 아이템 생성
-        List<ProductItem> items = productRegisterReqDto.items().stream().map(ProductItemReqDto::toEntity).toList();
-
-        Product newProduct = Product.builder()
+        return Product.builder()
                 .category(category)
-                .brandName(productRegisterReqDto.brandName())
-                .productName(productRegisterReqDto.productName())
-                .price(productRegisterReqDto.price())
-                .description(productRegisterReqDto.description())
-                .images(images)
-                .items(items)
+                .brandName(productDto.brandName())
+                .productName(productDto.productName())
+                .price(productDto.price())
+                .description(productDto.description())
                 .user(user)
                 .build();
-
-        Product saved = productRepository.save(newProduct);
-        return convertToProductResDto(saved);
     }
 
     @Override
@@ -172,7 +211,7 @@ public class ProductServiceImpl implements ProductService {
         List<FileInfoDto> productImages = product.getProductImages().stream().map((item)-> new FileInfoDto(item.getStoredFileName(), item.getUploadFileName())).toList();
         List<FileInfoDto> descriptionImages = product.getDescriptionImages().stream().map(item -> new FileInfoDto(item.getStoredFileName(), item.getUploadFileName())).toList();
 
-        List<ProductItemResDto> itemResDtos = product.getItems().stream().map(ProductItemResDto::from).toList();
+        List<ProductItemDto> itemResDtos = product.getItems().stream().map(ProductItemDto::from).toList();
         List<ColorDetailDto> colorDetails = groupItemByColor(product.getItems());
 
         return new ProductResDto(
@@ -187,6 +226,26 @@ public class ProductServiceImpl implements ProductService {
                 descriptionImages,
                 itemResDtos,
                 colorDetails
+        );
+    }
+
+    public ProductResDto convertToProductResDto(ProductAndThumbnailDto productAndThumbnailDto) {
+        FileInfoDto thumbnail = new FileInfoDto(
+                productAndThumbnailDto.getUrl(), productAndThumbnailDto.getFilename());
+
+        Category category = categoryRepository.findById(productAndThumbnailDto.getCategoryId()).orElseThrow();
+        return new ProductResDto(
+                productAndThumbnailDto.getId(),
+                categoryService.getCategoryPath(category),
+                productAndThumbnailDto.getBrandName(),
+                productAndThumbnailDto.getProductName(),
+                productAndThumbnailDto.getPrice(),
+                productAndThumbnailDto.getDescription(),
+                thumbnail,
+                null,
+                null,
+                null,
+                null
         );
     }
 }

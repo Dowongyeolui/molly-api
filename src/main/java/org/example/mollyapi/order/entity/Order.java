@@ -51,6 +51,9 @@ public class Order {
     @Column(nullable = true)
     private Integer pointUsage; // 사용한 포인트
 
+    @Column(nullable = true)
+    private Integer pointSave; // 적립 포인트
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -112,5 +115,9 @@ public class Order {
 
     public void setDelivery(Delivery delivery) {
         this.delivery = delivery;
+    }
+
+    public void setPointSave(int point) {
+        this.pointSave = point;
     }
 }

@@ -134,8 +134,8 @@ public class OrderService {
         // 배송 정보 생성
         order.setDeliveryInfo(deliveryInfoJson);
         createDelivery(order);
-        orderRepository.save(order); // ✅ 저장 추가
-        orderRepository.flush(); // ✅ 즉시 반영
+        orderRepository.save(order);
+        orderRepository.flush();
 
         orderRepository.save(order);
     }

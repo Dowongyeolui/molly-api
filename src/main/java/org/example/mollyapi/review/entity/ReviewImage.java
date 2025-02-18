@@ -23,8 +23,8 @@ public class ReviewImage extends Base {
     @Column(nullable = false)
     private String filename;
 
-    @Column(name = "is_first_image", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
-    private Boolean isFirstImage; //첫번째 사진 여부. 0: False, 1: True
+    @Column(name = "image_index", nullable = false)
+    private Long imageIndex;
 
     @Column(name = "is_video", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private Boolean isVideo; //비디오 여부. 0: False, 1: True
@@ -36,19 +36,18 @@ public class ReviewImage extends Base {
     @Builder
     public ReviewImage(
             UploadFile uploadFile,
-            boolean isFirstImage,
+            Long imageIndex,
             boolean isVideo,
             Review review
     ) {
         this.url = uploadFile.getUploadFileName();
         this.filename = uploadFile.getStoredFileName();
-        this.isFirstImage = isFirstImage;
+        this.imageIndex = imageIndex;
         this.isVideo = isVideo;
         this.review = review;
     }
 
     public static ReviewImage createReviewImage(Review review, UploadFile uploadFile, Long idx) {
-        boolean isFirst = (idx == 0L);
-        return new ReviewImage(uploadFile, isFirst, false, review);
+        return new ReviewImage(uploadFile, idx, false, review);
     }
 }
