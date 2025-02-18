@@ -57,7 +57,7 @@ public class ReviewCustomRepositoryImpl implements ReviewCustomRepository {
                         productImage.url.coalesce("게시 중단된 상품입니다.")
                 )).from(review)
                 .innerJoin(productImage).on(review.product.id.eq(productImage.product.id)
-                        .and(productImage.isProductImage.eq(Boolean.TRUE)))
+                        .and(productImage.isRepresentative.eq(Boolean.TRUE)))
                 .where(review.isDeleted.eq(Boolean.FALSE)
                         .and(review.user.userId.eq(userId)))
                 .fetch();

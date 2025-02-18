@@ -1,12 +1,16 @@
 package org.example.mollyapi.payment.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
+import org.example.mollyapi.address.dto.AddressRequestDto;
 import org.example.mollyapi.common.config.WebClientUtil;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.common.exception.error.impl.UserError;
+import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.service.OrderService;
@@ -20,6 +24,7 @@ import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.PaymentService;
+import org.example.mollyapi.payment.util.MapperUtil;
 import org.example.mollyapi.payment.util.PaymentWebClientUtil;
 import org.example.mollyapi.user.dto.GetUserSummaryInfoWithPointResDto;
 import org.example.mollyapi.user.entity.User;
@@ -61,7 +66,7 @@ public class PaymentServiceImpl implements PaymentService {
         결제 로직
      */
     @Transactional
-    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, Long deliveryId, String paymentType) {
+    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, String paymentType, DeliveryReqDto deliveryInfo) {
         /* 1. find order with tossOrderId
          2. validate amount
          3. success/failure logic
@@ -99,8 +104,8 @@ public class PaymentServiceImpl implements PaymentService {
         // create pending payment
         Payment payment = Payment.from(user, order, tossOrderId, paymentKey, paymentType, amount, "결제대기");
 
-        // deliveryInfoJson 가져오기
-        String deliveryInfoJson = order.getDeliveryInfo();
+        // deliveryInfoJson 변형
+        String deliveryInfoJson = MapperUtil.convertDtoToJson(deliveryInfo);
 
         // 결제 성공 및 실패 로직
         if (res) {
@@ -228,9 +233,16 @@ public class PaymentServiceImpl implements PaymentService {
     /*
         payment 생성
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Payment savePayment(Payment payment) {
-        return paymentRepository.save(payment);
+    public Payment createPayment(Long userId, Long orderId, String tossOrderId, String paymentKey, String paymentType, Long amount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new CustomException(UserError.NOT_EXISTS_USER));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(()-> new CustomException(PaymentError.ORDER_NOT_FOUND));
+
+        Payment payment = Payment.from(user, order, tossOrderId, paymentKey, paymentType, amount, "결제대기");
+        paymentRepository.save(payment);
+
+        return payment;
     }
 
     /*

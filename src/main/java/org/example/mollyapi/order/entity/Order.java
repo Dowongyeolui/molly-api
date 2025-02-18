@@ -32,8 +32,7 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "delivery_id")
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Delivery delivery;
 
     @Column(nullable = false)
@@ -67,9 +66,6 @@ public class Order {
 
     @Column(nullable = false)
     private LocalDateTime expirationTime;
-
-    @Column(columnDefinition = "TEXT")
-    private String deliveryInfo; // JSON 형태로 배송 정보 저장
 
     @PrePersist
     protected void onCreate() {
@@ -105,16 +101,9 @@ public class Order {
         this.pointUsage = pointUsage;
     }
 
-    public void setDeliveryInfo(String deliveryInfo) {
-        this.deliveryInfo = deliveryInfo;
-    }
-
-    public String getDeliveryInfo() {
-        return this.deliveryInfo;
-    }
-
     public void setDelivery(Delivery delivery) {
         this.delivery = delivery;
+        delivery.setOrder(this); // 양방향 관계 설정
     }
 
     public void setPointSave(int point) {

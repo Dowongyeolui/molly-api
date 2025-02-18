@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.mollyapi.address.dto.AddressResponseDto;
+import org.example.mollyapi.address.repository.AddressRepository;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
+import org.example.mollyapi.order.dto.OrderHistoryResponseDto;
 import org.example.mollyapi.order.dto.OrderRequestDto;
 import org.example.mollyapi.order.dto.OrderResponseDto;
 import org.example.mollyapi.order.entity.*;
@@ -41,10 +44,55 @@ public class OrderService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final DeliveryRepository deliveryRepository;
+    private final AddressRepository addressRepository;
 
+
+    // 사용자의 주문 내역 조회 (GET /orders/{userId})
+    public OrderHistoryResponseDto getUserOrders(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
+
+        List<Order> orders = orderRepository.findOrdersByUserAndStatusIn(
+                user, List.of(OrderStatus.SUCCEEDED, OrderStatus.WITHDRAW)
+        );
+
+        return new OrderHistoryResponseDto(userId, orders, paymentRepository);
+    }
+
+
+    // 주문 상세 조회 (GET /orders/{orderId})
+    public OrderResponseDto getOrderDetails(Long orderId) {
+        // 주문 조회
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. orderId=" + orderId));
+
+        User user = order.getUser();
+
+        // 사용자 보유 포인트 조회
+        Integer userPoint = user.getPoint();
+
+        // 기본 배송지 조회
+        AddressResponseDto defaultAddress = addressRepository.findByUserAndDefaultAddr(user, true)
+                .map(AddressResponseDto::from)
+                .orElse(null);
+
+        // 주문 상세 응답 반환
+        return OrderResponseDto.from(order, paymentRepository, userPoint, defaultAddress);
+    }
+
+
+    // 주문 생성
     public OrderResponseDto createOrder(Long userId, List<OrderRequestDto> orderRequests) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
+
+        // 사용자 보유 포인트 가져오기
+        Integer userPoint = user.getPoint();
+
+        // 기본 배송지 찾기
+        AddressResponseDto defaultAddress = addressRepository.findByUserAndDefaultAddr(user, true)
+                .map(AddressResponseDto::from)
+                .orElse(null);
 
         // 결제용 주문 ID 생성
         String tossOrderId = generateTossOrderId();
@@ -98,9 +146,10 @@ public class OrderService {
                 .mapToLong(d -> d.getPrice() * d.getQuantity())
                 .sum();
         order.setTotalAmount(totalAmount);
+
         orderRepository.save(order);
 
-        return new OrderResponseDto(order, orderDetails);
+        return new OrderResponseDto(order, orderDetails, paymentRepository, userPoint, defaultAddress);
     }
 
     private String generateTossOrderId() {
@@ -132,10 +181,7 @@ public class OrderService {
         order.updatePaymentInfo(paymentId, paymentType, paymentAmount, pointUsage);
 
         // 배송 정보 생성
-        order.setDeliveryInfo(deliveryInfoJson);
-        createDelivery(order);
-        orderRepository.save(order);
-        orderRepository.flush();
+        createDelivery(order, deliveryInfoJson);
 
         orderRepository.save(order);
     }
@@ -211,10 +257,10 @@ public class OrderService {
         return isExpired ? "요청한 시간이 초과되어 주문이 취소되었습니다." : "주문을 취소했습니다.";
     }
 
-    private void createDelivery(Order order) {
+    private void createDelivery(Order order, String deliveryInfoJson) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode deliveryInfo = objectMapper.readTree(order.getDeliveryInfo());
+            JsonNode deliveryInfo = objectMapper.readTree(deliveryInfoJson);
 
             String receiverName = deliveryInfo.get("receiver_name").asText();
             String receiverPhone = deliveryInfo.get("receiver_phone").asText();
@@ -222,18 +268,16 @@ public class OrderService {
             String numberAddress = deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null;
             String addrDetail = deliveryInfo.get("addr_detail").asText();
 
-            // 배송 정보 생성 및 저장
+            // 배송 정보 생성
             Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail);
+
+            // 배송 정보 저장
             deliveryRepository.save(delivery);
-            deliveryRepository.flush();
 
-            // Order에 delivery_id 저장, delivery_info 제거
+            // Order와 연결
             order.setDelivery(delivery);
-            order.setDeliveryInfo(null);
-            orderRepository.save(order);
-            orderRepository.flush();
 
-            log.info("배송 생성 완료. 주문번호: {}, 배송번호: {}", order.getId(), delivery.getId());
+            log.info("배송 생성 완료: 주문번호={}, 배송번호={}", order.getId(), delivery.getId());
 
         } catch (Exception e) {
             log.error("배송 정보 파싱 실패: {}", e.getMessage());

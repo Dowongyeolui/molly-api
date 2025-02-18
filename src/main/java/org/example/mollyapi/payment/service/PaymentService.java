@@ -1,5 +1,7 @@
 package org.example.mollyapi.payment.service;
 
+import org.example.mollyapi.address.dto.AddressRequestDto;
+import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.payment.dto.request.PaymentCancelReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
@@ -10,7 +12,7 @@ import java.util.List;
 public interface PaymentService {
 
     //결제 승인 절차
-    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, Long deliveryId, String paymentType);
+    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, String paymentType, DeliveryReqDto delivery);
 
     //결제 성공 절차
     public void successPayment(Payment payment, String tossOrderId,Integer point, String deliveryInfoJson);
@@ -33,4 +35,6 @@ public interface PaymentService {
 
     //userId로 모든 결제정보 찾기
     public List<PaymentInfoResDto> findUserPayments(Long userId);
+
+    public Payment createPayment(Long userId, Long orderId, String tossOrderId, String paymentKey, String paymentType, Long amount);
 }

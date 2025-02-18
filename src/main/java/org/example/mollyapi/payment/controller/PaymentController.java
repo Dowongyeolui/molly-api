@@ -16,7 +16,9 @@ import org.example.mollyapi.payment.dto.request.PaymentInfoReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
+import org.example.mollyapi.payment.service.PaymentService;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
+import org.example.mollyapi.payment.util.MapperUtil;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +31,7 @@ import java.util.List;
 @RequestMapping("/payment")
 @Tag(name = "결제 Controller", description = "결제 담당")
 public class PaymentController {
-    private final PaymentServiceImpl paymentService;
+    private final PaymentService paymentService;
 
     @PostMapping("/confirm")
     @Operation(summary = "결제 검증 api", description = "tossPayments 결제 승인을 요청하고, 결제 금액을 검증합니다.")
@@ -50,8 +52,8 @@ public class PaymentController {
                 paymentConfirmReqDto.tossOrderId(),
                 paymentConfirmReqDto.amount(),
                 paymentConfirmReqDto.point(),
-                paymentConfirmReqDto.deliveryId(),
-                paymentConfirmReqDto.paymentType()
+                paymentConfirmReqDto.paymentType(),
+                paymentConfirmReqDto.delivery()
         );
 
         return ResponseEntity.ok().body(PaymentResDto.from(payment));
@@ -99,6 +101,39 @@ public class PaymentController {
         Long userId = (Long) request.getAttribute("userId");
         List<PaymentInfoResDto> paymentInfoResDtos = paymentService.findUserPayments(userId);
         return ResponseEntity.ok().body(paymentInfoResDtos);
+    }
+
+    @Operation(summary = "주문 생성후 결제 성공과 주문 성공 테스트 엔드포인트", description = "paymentKey, paymentType, delivery 필드는 임의의 값을 대입해 결제 정보를 생성하고 주문 성공 로직을 실행합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공",
+                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
+            @ApiResponse(responseCode = "400", description = "실패",
+                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
+    })
+
+    @PostMapping("/success/test")
+    public ResponseEntity<Void> paymentSuccessProcessTest(HttpServletRequest request, @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
+//        Long userId = (Long) request.getAttribute("userId");
+        log.warn(paymentConfirmReqDto.toString());
+        Payment payment = paymentService.createPayment(19L,
+                paymentConfirmReqDto.orderId(),
+                paymentConfirmReqDto.tossOrderId(),
+                paymentConfirmReqDto.paymentKey(),
+                paymentConfirmReqDto.paymentType(),
+                paymentConfirmReqDto.amount());
+
+        log.info(MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery()));
+        log.warn("yes");
+
+        paymentService.successPayment(payment,
+                paymentConfirmReqDto.tossOrderId(),
+                paymentConfirmReqDto.point(),
+                MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery())
+                );
+
+
+
+        return ResponseEntity.ok().build();
     }
 
 }
