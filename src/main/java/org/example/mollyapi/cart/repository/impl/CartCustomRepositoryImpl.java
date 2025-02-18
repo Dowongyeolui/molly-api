@@ -39,7 +39,7 @@ public class CartCustomRepositoryImpl implements CartCustomRepository {
                 .innerJoin(item).on(cart.productItem.eq(item))
                 .innerJoin(product).on(item.product.eq(product))
                 .innerJoin(image).on(product.id.eq(image.product.id)
-                    .and(image.isProductImage.isTrue()))
+                    .and(image.isRepresentative.eq(Boolean.TRUE)))
                 .where(cart.user.userId.eq(userId))
                 .fetch();
     }
