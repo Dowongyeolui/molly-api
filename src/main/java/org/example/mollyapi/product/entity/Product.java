@@ -27,8 +27,6 @@ public class Product extends Base {
     String productName;
     Long price;
     String description;
-
-    @Column(nullable = false)
     Long viewCount = 0L;
 
     @Column(nullable = false)
