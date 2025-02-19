@@ -1,10 +1,10 @@
 package org.example.mollyapi.product.repository;
 
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import org.example.mollyapi.product.dto.ProductAndThumbnailDto;
-import org.example.mollyapi.product.dto.ProductFilterCondition;
-import org.example.mollyapi.product.dto.QProductAndThumbnailDto;
+import org.example.mollyapi.product.dto.*;
+import org.example.mollyapi.product.enums.OrderBy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -25,6 +25,30 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
     }
 
     @Override
+    public Slice<BrandSummaryDto> getTotalViewGroupByBrandName(Pageable pageable) {
+        List<BrandSummaryDto> content = queryFactory.select(
+                new QBrandSummaryDto(
+                        productImage.url.max().as("brandThumbnail"),
+                        product.brandName,
+                        product.count(),
+                        product.viewCount.sum().as("viewCount")))
+                .from(productImage)
+                .join(productImage.product, product)
+                .on(productImage.isRepresentative.isTrue())
+                .groupBy(product.brandName)
+                .orderBy(product.viewCount.sum().desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1)
+                .fetch();
+        boolean hasNext = false;
+        if (content.size() > pageable.getPageSize()) {
+            content.remove(pageable.getPageSize());
+            hasNext = true;
+        }
+        return new SliceImpl<BrandSummaryDto>(content, pageable, hasNext);
+    }
+
+    @Override
     public Slice<ProductAndThumbnailDto> findByCondition(ProductFilterCondition condition, Pageable pageable) {
         List<ProductAndThumbnailDto> content = queryFactory
                 .select(new QProductAndThumbnailDto(
@@ -36,7 +60,9 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
                         product.description,
                         productImage.url,
                         productImage.filename,
-                        product.createdAt
+                        product.createdAt,
+                        product.viewCount,
+                        product.purchaseCount
                 ))
                 .distinct()
                 .from(productItem)
@@ -46,11 +72,12 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
                         colorCodeEq(condition.getColorCode()),
                         sizeEq(condition.getSize()),
                         categoryIdEq(condition.getCategoryId()),
+                        brandNameEq(condition.getBrandName()),
                         priceGoe(condition.getPriceGoe()),
                         priceLt(condition.getPriceLt()),
                         sellerIdEq(condition.getSellerId())
                 )
-                .orderBy(product.createdAt.desc())
+                .orderBy(orderByCondition(condition.getOrderBy()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
                 .fetch();
@@ -60,7 +87,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
             content.remove(pageable.getPageSize());
             hasNext = true;
         }
-        return new SliceImpl(content, pageable, hasNext);
+        return new SliceImpl<ProductAndThumbnailDto>(content, pageable, hasNext);
     }
     private BooleanExpression colorCodeEq(String colorCode) {
         return hasText(colorCode)? productItem.colorCode.eq(colorCode) : null;
@@ -72,6 +99,10 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
     private BooleanExpression categoryIdEq(List<Long> categoryId) {
         return categoryId != null && !categoryId.isEmpty()? product.category.id.in(categoryId) : null;
+    }
+
+    private BooleanExpression brandNameEq(String brandName) {
+        return hasText(brandName)? product.brandName.eq(brandName) : null;
     }
 
     private BooleanExpression priceGoe(Long priceGoe) {
@@ -86,7 +117,13 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         return sellerId != null? product.user.userId.eq(sellerId) : null;
     }
 
-    private BooleanExpression getThumbnail() {
-        return productImage.isRepresentative.eq(true);
+    private OrderSpecifier<?> orderByCondition(OrderBy orderBy) {
+        if (orderBy != null) {
+            return switch (orderBy) {
+                case CREATED_AT -> product.category.createdAt.desc();
+                case VIEW_COUNT -> product.viewCount.desc();
+            };
+        }
+        return product.createdAt.desc();
     }
 }

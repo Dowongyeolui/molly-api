@@ -2,10 +2,8 @@ package org.example.mollyapi.product.dto;
 
 import com.querydsl.core.annotations.QueryProjection;
 import lombok.Data;
-import org.example.mollyapi.product.entity.ProductImage;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 public class ProductAndThumbnailDto {
@@ -15,10 +13,11 @@ public class ProductAndThumbnailDto {
     String productName;
     Long price;
     String description;
-//    ProductImage thumbnail;
     String url;
     String filename;
     LocalDateTime createdAt;
+    Long viewCount;
+    Long purchaseCount;
 
 
     @QueryProjection
@@ -29,10 +28,11 @@ public class ProductAndThumbnailDto {
             String productName,
             Long price,
             String description,
-//            ProductImage thumbnail
             String url,
             String filename,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            Long viewCount,
+            Long purchaseCount
     ) {
         this.id = id;
         this.categoryId = categoryId;
@@ -43,5 +43,7 @@ public class ProductAndThumbnailDto {
         this.url = url;
         this.filename = filename;
         this.createdAt = createdAt;
+        this.viewCount = viewCount;
+        this.purchaseCount = purchaseCount;
     }
 }

@@ -12,10 +12,12 @@ import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
+import org.example.mollyapi.product.dto.BrandSummaryDto;
 import org.example.mollyapi.product.dto.ProductFilterCondition;
 import org.example.mollyapi.product.dto.response.ListResDto;
 import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.product.entity.Category;
+import org.example.mollyapi.product.enums.OrderBy;
 import org.example.mollyapi.product.service.CategoryService;
 import org.example.mollyapi.product.service.ProductService;
 import org.example.mollyapi.product.dto.request.ProductReqDto;
@@ -45,7 +47,9 @@ public class ProductControllerImpl {
     @GetMapping
     @Operation(summary = "상품 정보 목록",
             description = "상품 정보와 옵션별 상품 아이템 데이터 조회,  " +
-                    "파라미터 예시: ?categories=여성,아우터")
+                    "파라미터 예시: ?categories=여성,아우터,  " +
+                    "priceGoe= ~이상, priceLt= ~미만"
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상품 목록 반환",
                     content = @Content(schema = @Schema(implementation = ListResDto.class))),
@@ -57,8 +61,10 @@ public class ProductControllerImpl {
             @RequestParam(required = false) String colorCode,
             @RequestParam(required = false) String productSize,
             @RequestParam(required = false) String categories,
+            @RequestParam(required = false) String brandName,
             @RequestParam(required = false) Long priceGoe,
             @RequestParam(required = false) Long priceLt,
+            @RequestParam(required = false) OrderBy orderBy,
             @RequestParam int page,
             @RequestParam int size
     ) {
@@ -75,9 +81,11 @@ public class ProductControllerImpl {
                 colorCode,
                 productSize,
                 categoryIdList,
+                brandName,
                 priceGoe,
                 priceLt,
-                null
+                null,
+                orderBy
         );
 
         Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
@@ -100,9 +108,11 @@ public class ProductControllerImpl {
 
     @Auth
     @GetMapping("/seller")
-    @Operation(summary = "상품 정보 목록",
+    @Operation(summary = "상품 정보 목록(판매자용)",
             description = "상품 정보와 옵션별 상품 아이템 데이터 조회,  " +
-                    "파라미터 예시: ?categories=여성,아우터")
+                    "파라미터 예시: ?categories=여성,아우터,  " +
+                    "priceGoe= ~이상, priceLt= ~미만"
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상품 목록 반환",
                     content = @Content(schema = @Schema(implementation = ListResDto.class))),
@@ -115,8 +125,10 @@ public class ProductControllerImpl {
             @RequestParam(required = false) String colorCode,
             @RequestParam(required = false) String productSize,
             @RequestParam(required = false) String categories,
+            @RequestParam(required = false) String brandName,
             @RequestParam(required = false) Long priceGoe,
             @RequestParam(required = false) Long priceLt,
+            @RequestParam(required = false) OrderBy orderBy,
             @RequestParam int page,
             @RequestParam int size
     ) {
@@ -135,9 +147,11 @@ public class ProductControllerImpl {
                 colorCode,
                 productSize,
                 categoryIdList,
+                brandName,
                 priceGoe,
                 priceLt,
-                userId
+                userId,
+                orderBy
         );
 
         Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
@@ -176,6 +190,36 @@ public class ProductControllerImpl {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(productResDto);
+    }
+
+    @GetMapping("/popular-brand")
+    @Operation(summary = "인기 브랜드 목록 조회", description = "브랜드별 조회수가 높은 순으로 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "상품 목록 반환",
+                    content = @Content(schema = @Schema(implementation = ListResDto.class))),
+            @ApiResponse(responseCode = "204", description = "조회 데이터 없음",
+                    content = @Content(schema = @Schema(type = "string", example = ""))),
+            @ApiResponse(responseCode = "400", description = "실패",
+                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
+    })
+    public ResponseEntity<ListResDto> getPopularBrand(
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+
+        Slice<BrandSummaryDto> brands = productService.getPopularBrand(pageRequest);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ListResDto(
+                        new PageResDto(
+                                (long) brands.getContent().size(),
+                                brands.hasNext(),
+                                brands.isFirst(),brands.isLast()
+                        ),
+                        brands.getContent()
+                ));
     }
 
 

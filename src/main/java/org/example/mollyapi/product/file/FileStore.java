@@ -13,13 +13,19 @@ public class FileStore {
     public List<UploadFile> storeFiles(List<MultipartFile> files) {
         List<UploadFile> uploadFiles = new ArrayList<>();
         for (MultipartFile file : files) {
-            uploadFiles.add(new UploadFile("uploadFileName", "storedFileName"));
+            uploadFiles.add(UploadFile.builder()
+                    .storedFileName("storedFileName")
+                    .uploadFileName("uploadFileName")
+                    .build());
         }
         return uploadFiles;
     }
 
     public UploadFile storeFile(MultipartFile file) {
 
-        return new UploadFile("uploadFileName", "storedFileName");
+        return UploadFile.builder()
+                .storedFileName("storedFileName")
+                .uploadFileName("uploadFileName")
+                .build();
     }
 }

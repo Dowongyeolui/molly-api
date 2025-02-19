@@ -29,6 +29,8 @@ public class Product extends Base {
     String productName;
     Long price;
     String description;
+    Long viewCount = 0L;
+    Long purchaseCount = 0L;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     List<ProductImage> images = new ArrayList<>();
@@ -57,6 +59,18 @@ public class Product extends Base {
         this.user = user;
     }
 
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+    public void increasePurchaseCount() {
+        this.purchaseCount++;
+    }
+
+    public void decreasePurchaseCount() {
+        this.purchaseCount--;
+    }
+
     public void addImage(ProductImage productImage) {
         images.add(productImage);
     }
@@ -71,20 +85,29 @@ public class Product extends Base {
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("No product image found"));
 
-        return new UploadFile(productImage.url, productImage.filename);
+        return UploadFile.builder()
+                .storedFileName(productImage.url)
+                .uploadFileName(productImage.filename)
+                .build();
     }
 
     public List<UploadFile> getProductImages() {
         return images.stream()
                 .filter(img -> img.isProductImage)
-                .map(img -> new UploadFile(img.url, img.filename))
+                .map(img -> UploadFile.builder()
+                        .storedFileName(img.url)
+                        .uploadFileName(img.filename)
+                        .build())
                 .toList();
     }
 
     public List<UploadFile> getDescriptionImages() {
         return images.stream()
                 .filter(img -> img.isDescriptionImage)
-                .map(img -> new UploadFile(img.url, img.filename))
+                .map(img -> UploadFile.builder()
+                        .storedFileName(img.url)
+                        .uploadFileName(img.filename)
+                        .build())
                 .toList();
     }
 

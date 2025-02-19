@@ -158,64 +158,6 @@ public class OrderService {
         return "ORD-" + timestamp + "-" + randomNum;
     }
 
-    public void successOrder(String tossOrderId, String paymentId, String paymentType, Long paymentAmount, Integer pointUsage, String deliveryInfoJson) {
-        // 주문 찾기
-        Order order = orderRepository.findByTossOrderId(tossOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
-
-        // 주문 상태 변경
-        order.setStatus(OrderStatus.SUCCEEDED);
-
-        // 사용자의 포인트 차감
-        User user = order.getUser();
-        if (pointUsage != null && pointUsage > 0) {
-            if (user.getPoint() < pointUsage) {
-                throw new IllegalArgumentException("사용자 포인트가 부족합니다.");
-            }
-            user.updatePoint(-pointUsage); // 포인트 차감
-
-            userRepository.save(user);
-        }
-
-        // 결제 정보 업데이트
-        order.updatePaymentInfo(paymentId, paymentType, paymentAmount, pointUsage);
-
-        // 배송 정보 생성
-        createDelivery(order, deliveryInfoJson);
-
-        orderRepository.save(order);
-    }
-
-    // 주문 실패: 결제 실패로 주문이 실패하는 경우
-    public void failOrder(String tossOrderId) {
-        Order order = orderRepository.findByTossOrderId(tossOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
-
-        order.setStatus(OrderStatus.FAILED);
-
-        // 재고 복구
-        for (OrderDetail detail : order.getOrderDetails()) {
-            ProductItem productItem = detail.getProductItem();
-            if (productItem != null) {
-                log.info("[Before] 재고 복구 전 - 상품 ID: {}, 기존 재고: {}, 주문 수량: {}",
-                        productItem.getId(), productItem.getQuantity(), detail.getQuantity());
-
-                productItem.restoreStock(detail.getQuantity()); // 재고 복구
-                productItemRepository.save(productItem);
-                productItemRepository.flush();
-
-                log.info("[After] 재고 복구 완료 - 상품 ID: {}, 실행 후 재고: {}",
-                        productItem.getId(), productItem.getQuantity());
-            } else {
-                log.warn("ProductItem이 null입니다. OrderDetail ID: {}", detail.getId());
-            }
-        }
-
-
-        // 주문 데이터 삭제 (Cascade로 OrderDetail도 삭제됨)
-        orderRepository.delete(order);
-    }
-
     // 주문 취소: 결제 요청 전 주문을 취소하는 경우
     @Transactional
     public String cancelOrder(Long orderId, boolean isExpired) {
@@ -255,34 +197,6 @@ public class OrderService {
 
         // 클라이언트에 응답 메시지 반환
         return isExpired ? "요청한 시간이 초과되어 주문이 취소되었습니다." : "주문을 취소했습니다.";
-    }
-
-    private void createDelivery(Order order, String deliveryInfoJson) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode deliveryInfo = objectMapper.readTree(deliveryInfoJson);
-
-            String receiverName = deliveryInfo.get("receiver_name").asText();
-            String receiverPhone = deliveryInfo.get("receiver_phone").asText();
-            String roadAddress = deliveryInfo.get("road_address").asText();
-            String numberAddress = deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null;
-            String addrDetail = deliveryInfo.get("addr_detail").asText();
-
-            // 배송 정보 생성
-            Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail);
-
-            // 배송 정보 저장
-            deliveryRepository.save(delivery);
-
-            // Order와 연결
-            order.setDelivery(delivery);
-
-            log.info("배송 생성 완료: 주문번호={}, 배송번호={}", order.getId(), delivery.getId());
-
-        } catch (Exception e) {
-            log.error("배송 정보 파싱 실패: {}", e.getMessage());
-            throw new RuntimeException("배송 정보를 저장할 수 없습니다.");
-        }
     }
 
 }

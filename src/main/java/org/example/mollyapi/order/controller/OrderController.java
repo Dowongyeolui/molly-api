@@ -40,8 +40,9 @@ public class OrderController {
     }
 
     @Auth
-    @GetMapping(value = "/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<OrderHistoryResponseDto> getUserOrders(@PathVariable Long userId) {
+    @GetMapping(value = "/user", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<OrderHistoryResponseDto> getUserOrders(HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
         OrderHistoryResponseDto orders = orderService.getUserOrders(userId);
         return ResponseEntity.ok(orders);
     }

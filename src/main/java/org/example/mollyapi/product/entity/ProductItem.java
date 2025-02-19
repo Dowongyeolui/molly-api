@@ -59,9 +59,12 @@ public class ProductItem extends Base {
                         throw new IllegalArgumentException("재고 부족: 현재 수량=" + this.quantity + ", 요청 수량=" + quantityToDecrease);
                 }
                 this.quantity -= quantityToDecrease;
+                this.product.increasePurchaseCount();
         }
 
         public void restoreStock(Long quantityToRestore) {
+
                 this.quantity += quantityToRestore;
+                this.product.decreasePurchaseCount();
         }
 }

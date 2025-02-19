@@ -115,6 +115,11 @@ public class ProductServiceImpl implements ProductService {
         return convertToProductResDto(savedProduct);
     }
 
+    @Override
+    public Slice<BrandSummaryDto> getPopularBrand(Pageable pageable) {
+        return productRepository.getTotalViewGroupByBrandName(pageable);
+    }
+
     private Product registerThumbnail(Product product, MultipartFile thumbnailImage) {
         UploadFile uploadFile = fileStore.storeFile(thumbnailImage);
         ProductImage thumbnail = ProductImage.createThumbnail(product, uploadFile);
@@ -174,8 +179,12 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public Optional<ProductResDto> getProductById(Long id) {
 
-        Optional<Product> byId = productRepository.findById(id);
-        return byId.map(this::convertToProductResDto);
+        Optional<Product> product = productRepository.findById(id);
+
+        // 조회수 증가
+        product.ifPresent(Product::increaseViewCount);
+
+        return product.map(this::convertToProductResDto);
     }
 
     @Override
