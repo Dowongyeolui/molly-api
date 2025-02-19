@@ -1,20 +1,18 @@
 package org.example.mollyapi.product.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
 import org.example.mollyapi.user.entity.User;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends Base {
 
     @Id
@@ -29,7 +27,11 @@ public class Product extends Base {
     String productName;
     Long price;
     String description;
+
+    @Column(nullable = false)
     Long viewCount = 0L;
+
+    @Column(nullable = false)
     Long purchaseCount = 0L;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
@@ -57,6 +59,8 @@ public class Product extends Base {
         this.price = price;
         this.description = description;
         this.user = user;
+        this.viewCount = 0L;
+        this.purchaseCount = 0L;
     }
 
     public void increaseViewCount() {
@@ -64,11 +68,11 @@ public class Product extends Base {
     }
 
     public void increasePurchaseCount() {
-        this.purchaseCount++;
+        this.purchaseCount = Optional.ofNullable(this.purchaseCount).orElse(0L) + 1;
     }
 
     public void decreasePurchaseCount() {
-        this.purchaseCount--;
+        this.purchaseCount = Math.max(0, Optional.ofNullable(this.purchaseCount).orElse(0L) - 1);
     }
 
     public void addImage(ProductImage productImage) {
@@ -123,7 +127,10 @@ public class Product extends Base {
         this.productName = productName;
         this.price = price;
         this.description = description;
-
         return this;
+    }
+
+    public void setPurchaseCount(long purchaseCount) {
+        this.purchaseCount = purchaseCount;
     }
 }
