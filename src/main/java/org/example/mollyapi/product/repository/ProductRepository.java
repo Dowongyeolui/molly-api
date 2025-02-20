@@ -14,7 +14,7 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, ProductRepositoryCustom {
 
     // PESSIMISTIC_WRITE 락
     @Lock(LockModeType.PESSIMISTIC_WRITE)

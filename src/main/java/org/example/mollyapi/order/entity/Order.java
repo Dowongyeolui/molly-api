@@ -32,8 +32,8 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "delivery_id")
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "delivery_id") // FK 설정
     private Delivery delivery;
 
     @Column(nullable = false)
@@ -51,6 +51,9 @@ public class Order {
     @Column(nullable = true)
     private Integer pointUsage; // 사용한 포인트
 
+    @Column(nullable = true)
+    private Integer pointSave; // 적립 포인트
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -65,9 +68,6 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime expirationTime;
 
-    @Column(columnDefinition = "TEXT")
-    private String deliveryInfo; // JSON 형태로 배송 정보 저장
-
     @PrePersist
     protected void onCreate() {
         this.orderedAt = LocalDateTime.now();
@@ -76,6 +76,10 @@ public class Order {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public void setCancelStatus(CancelStatus cancelStatus) {
+        this.cancelStatus = cancelStatus;
     }
 
     public void updateOrderedAt(LocalDateTime paymentTime) { // 결제 후 주문 일시 업데이트
@@ -102,15 +106,14 @@ public class Order {
         this.pointUsage = pointUsage;
     }
 
-    public void setDeliveryInfo(String deliveryInfo) {
-        this.deliveryInfo = deliveryInfo;
-    }
-
-    public String getDeliveryInfo() {
-        return this.deliveryInfo;
-    }
-
     public void setDelivery(Delivery delivery) {
         this.delivery = delivery;
+        if (delivery != null && delivery.getOrder() != this) {
+            delivery.setOrder(this);
+        }
+    }
+
+    public void setPointSave(int point) {
+        this.pointSave = point;
     }
 }

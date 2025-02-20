@@ -43,7 +43,7 @@ public class Delivery {
     private Order order; // 주문 정보와 1:1 매핑
 
     public static Delivery from(Order order, String receiverName, String receiverPhone, String roadAddress, String numberAddress, String addrDetail) {
-        return Delivery.builder()
+        Delivery delivery = Delivery.builder()
                 .order(order)
                 .status(DeliveryStatus.READY)
                 .receiverName(receiverName)
@@ -52,5 +52,15 @@ public class Delivery {
                 .numberAddress(numberAddress)
                 .addrDetail(addrDetail)
                 .build();
+
+        order.setDelivery(delivery); // 주문과 배송 연결
+        return delivery;
+    }
+
+    public void setOrder(Order order) {
+        this.order = order;
+        if (order != null && order.getDelivery() != this) {
+            order.setDelivery(this);
+        }
     }
 }

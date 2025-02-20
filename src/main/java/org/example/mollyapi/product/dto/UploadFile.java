@@ -1,11 +1,16 @@
 package org.example.mollyapi.product.dto;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class UploadFile {
     String uploadFileName;
     String storedFileName;
+
+    @Builder
+    UploadFile(String uploadFileName, String storedFileName) {
+        this.uploadFileName = uploadFileName;
+        this.storedFileName = storedFileName;
+    }
 }

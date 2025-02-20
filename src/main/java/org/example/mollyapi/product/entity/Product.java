@@ -1,19 +1,18 @@
 package org.example.mollyapi.product.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
 import org.example.mollyapi.user.entity.User;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends Base {
 
     @Id
@@ -28,6 +27,10 @@ public class Product extends Base {
     String productName;
     Long price;
     String description;
+    Long viewCount = 0L;
+
+    @Column(nullable = false)
+    Long purchaseCount = 0L;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     List<ProductImage> images = new ArrayList<>();
@@ -46,8 +49,6 @@ public class Product extends Base {
             String productName,
             Long price,
             String description,
-            List<ProductItem> items,
-            List<ProductImage> images,
             User user
     ) {
         this.category = category;
@@ -55,17 +56,29 @@ public class Product extends Base {
         this.productName = productName;
         this.price = price;
         this.description = description;
-        this.items = items;
-        this.images = images;
         this.user = user;
+        this.viewCount = 0L;
+        this.purchaseCount = 0L;
+    }
 
-        for (ProductImage image : images) {
-            image.setProduct(this);
-        }
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 
-        for (ProductItem item : items) {
-            item.setProduct(this);
-        }
+    public void increasePurchaseCount() {
+        this.purchaseCount = Optional.ofNullable(this.purchaseCount).orElse(0L) + 1;
+    }
+
+    public void decreasePurchaseCount() {
+        this.purchaseCount = Math.max(0, Optional.ofNullable(this.purchaseCount).orElse(0L) - 1);
+    }
+
+    public void addImage(ProductImage productImage) {
+        images.add(productImage);
+    }
+
+    public void addItem(ProductItem productItem) {
+        items.add(productItem);
     }
 
     public UploadFile getThumbnail() {
@@ -74,20 +87,29 @@ public class Product extends Base {
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("No product image found"));
 
-        return new UploadFile(productImage.url, productImage.filename);
+        return UploadFile.builder()
+                .storedFileName(productImage.url)
+                .uploadFileName(productImage.filename)
+                .build();
     }
 
     public List<UploadFile> getProductImages() {
         return images.stream()
                 .filter(img -> img.isProductImage)
-                .map(img -> new UploadFile(img.url, img.filename))
+                .map(img -> UploadFile.builder()
+                        .storedFileName(img.url)
+                        .uploadFileName(img.filename)
+                        .build())
                 .toList();
     }
 
     public List<UploadFile> getDescriptionImages() {
         return images.stream()
                 .filter(img -> img.isDescriptionImage)
-                .map(img -> new UploadFile(img.url, img.filename))
+                .map(img -> UploadFile.builder()
+                        .storedFileName(img.url)
+                        .uploadFileName(img.filename)
+                        .build())
                 .toList();
     }
 
@@ -96,25 +118,17 @@ public class Product extends Base {
             String brandName,
             String productName,
             Long price,
-            String description,
-            List<ProductItem> items,
-            List<ProductImage> images
+            String description
     ) {
         this.category = category;
         this.brandName = brandName;
         this.productName = productName;
         this.price = price;
         this.description = description;
-        
-        // 아이템에서 변경된 재고 반영
-        for (ProductItem updateItem : items) {
-            for (ProductItem thisItem : this.items) {
-                if (updateItem.getId().equals(thisItem.getId())) {
-                    thisItem.updateQuantity(updateItem.quantity);
-                }
-            }
-        }
-
         return this;
+    }
+
+    public void setPurchaseCount(long purchaseCount) {
+        this.purchaseCount = purchaseCount;
     }
 }

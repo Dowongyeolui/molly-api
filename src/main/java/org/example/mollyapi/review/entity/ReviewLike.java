@@ -26,4 +26,14 @@ public class ReviewLike {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
     private Review review;
+
+    public boolean updateIsLike(boolean isLike) {
+        boolean flag = false;
+        if(!this.isLike.equals(isLike)) {
+            this.isLike = isLike;
+            flag = true;
+        }
+
+        return flag;
+    }
 }

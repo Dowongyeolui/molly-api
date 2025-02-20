@@ -63,7 +63,7 @@ public class CartController {
     }
 
     @Auth
-    @PutMapping("/")
+    @PutMapping()
     @Operation(summary = "장바구니 상품 수정", description = "장바구니에 담긴 상품의 옵션을 수정할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),

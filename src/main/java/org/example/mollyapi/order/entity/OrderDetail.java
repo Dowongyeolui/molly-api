@@ -37,6 +37,14 @@ public class OrderDetail {
 
     private String productName;
 
+    public ProductItem getProductItem() {
+        return productItem;
+    }
+
+    public Long getQuantity() {
+        return quantity;
+    }
+
     @Builder
     public OrderDetail(Order order, ProductItem productItem, String size, Long price, Long quantity,String brandName, String productName) {
         this.order = order;

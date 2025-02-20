@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.order.entity.OrderDetail;
+import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.user.entity.User;
 
 import java.util.ArrayList;
@@ -31,9 +32,13 @@ public class Review extends Base {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_USER"))
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
     private OrderDetail orderDetail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_PRODUCT"))
+    private Product product;
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -42,5 +47,20 @@ public class Review extends Base {
 
     public void updateImages(List<ReviewImage> reviewImage) {
         this.reviewImages = reviewImage;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+    public boolean updateIsDeleted(Boolean isDeleted) {
+        boolean flag = false;
+
+        if(!this.isDeleted.equals(isDeleted)) {
+            this.isDeleted = isDeleted;
+            flag = true;
+        }
+
+        return flag;
     }
 }
