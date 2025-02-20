@@ -18,6 +18,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     int countOrderDetailsByTossOrderId(@Param("tossOrderId") String tossOrderId);
 
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.status IN (:statuses)")
-    List<Order> findOrdersByUserAndStatusIn(@Param("users") User user, @Param("statuses") List<OrderStatus> statuses);
+    List<Order> findOrdersByUserAndStatusIn(@Param("user") User user, @Param("statuses") List<OrderStatus> statuses);
 
 }
