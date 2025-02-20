@@ -1,6 +1,5 @@
 package org.example.mollyapi.product.dto.response;
 
-import com.querydsl.core.annotations.QueryProjection;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.example.mollyapi.product.dto.ProductItemDto;
