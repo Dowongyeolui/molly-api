@@ -1,6 +1,7 @@
 package org.example.mollyapi.review.repository.impl;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -70,5 +71,21 @@ public class ReviewCustomRepositoryImpl implements ReviewCustomRepository {
                 .orderBy(review.createdAt.desc())
                 .fetch();
 
+    }
+
+    @Override
+    public String getReviewStatus(Long orderDetailId, Long userId) {
+        String reviewType = jpaQueryFactory.select(
+                                new CaseBuilder()
+                                        .when(review.isDeleted.eq(false)).then("MODIFY")
+                                    .when(review.isDeleted.eq(true)).then("LOCKED")
+                                    .otherwise("OPEN")
+                            )
+                            .from(review)
+                            .where(review.orderDetail.id.eq(orderDetailId)
+                                    .and(review.user.userId.eq(userId)))
+                            .fetchOne();
+        // 리뷰가 없으면 'OPEN'을 리턴
+        return reviewType != null ? reviewType : "OPEN";
     }
 }

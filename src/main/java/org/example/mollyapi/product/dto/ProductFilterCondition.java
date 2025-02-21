@@ -19,4 +19,6 @@ public class ProductFilterCondition {
     Long sellerId;
 
     OrderBy orderBy;
+
+    Boolean excludeSoldOut;
 }

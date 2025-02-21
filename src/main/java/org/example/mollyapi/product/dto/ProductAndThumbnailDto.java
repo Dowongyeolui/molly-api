@@ -18,6 +18,7 @@ public class ProductAndThumbnailDto {
     LocalDateTime createdAt;
     Long viewCount;
     Long purchaseCount;
+    Boolean excludeSoldOut;
 
 
     @QueryProjection
@@ -33,6 +34,7 @@ public class ProductAndThumbnailDto {
             LocalDateTime createdAt,
             Long viewCount,
             Long purchaseCount
+
     ) {
         this.id = id;
         this.categoryId = categoryId;

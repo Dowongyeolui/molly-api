@@ -61,58 +61,22 @@ public class ProductControllerImpl {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<ListResDto> getAllProducts(
-            @RequestParam(required = false) String colorCode,
-            @RequestParam(required = false) String productSize,
-            @RequestParam(required = false) String categories,
-            @RequestParam(required = false) String brandName,
-            @RequestParam(required = false) Long priceGoe,
-            @RequestParam(required = false) Long priceLt,
-            @RequestParam(required = false) OrderBy orderBy,
+            @ParameterObject ProductFilterConditionReqDto conditionReqDto,
             @RequestParam int page,
             @RequestParam int size
     ) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        List<String> categoryPath = categories == null ? null : Arrays.asList(categories.split(","));
-
-        List<Long> categoryIdList = null;
-        if (categoryPath != null) {
-            categoryIdList = new ArrayList<>();
-            List<Category> categoryListEndWith = categoryService.findEndWith(categoryPath);
-
-            for (Category categoryEndWith : categoryListEndWith) {
-                List<Long> longList = categoryService.getLeafCategories(categoryEndWith).stream().map(Category::getId).toList();
-                categoryIdList.addAll(longList);
-            }
-        }
-
-        ProductFilterCondition condition = new ProductFilterCondition(
-                colorCode!=null?Arrays.asList(colorCode.split(",")):null,
-                productSize!=null?Arrays.asList(productSize.split(",")):null,
-                categoryIdList,
-                brandName,
-                priceGoe,
-                priceLt,
-                null,
-                orderBy
-        );
-
+        ProductFilterCondition condition = convertToProductFilterCondition(conditionReqDto, null);
         Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
 
-        if (products.isEmpty()) {
+        if (products.getContent().isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ListResDto(
-                        new PageResDto(
-                                (long) products.getContent().size(),
-                                products.hasNext(),
-                                products.isFirst(),products.isLast()
-                        ),
-                        products.getContent()
-                        ));
+                .body(new ListResDto(PageResDto.of(products), products.getContent()));
     }
 
     @Auth
@@ -137,11 +101,27 @@ public class ProductControllerImpl {
             @RequestParam int size
     ) {
         PageRequest pageRequest = PageRequest.of(page, size);
-
         Long userId = (Long) request.getAttribute("userId");
+
+        ProductFilterCondition condition = convertToProductFilterCondition(conditionReqDto, userId);
+        Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
+
+        if (products.getContent().isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ListResDto(PageResDto.of(products), products.getContent()));
+    }
+
+    private ProductFilterCondition convertToProductFilterCondition(
+            ProductFilterConditionReqDto conditionReqDto,
+            Long userId) {
+
         List<Long> categoryIdList = getCategoryIdListByCategoryPathString(conditionReqDto.categories());
 
-        ProductFilterCondition condition = new ProductFilterCondition(
+        return new ProductFilterCondition(
                 conditionReqDto.colorCode()!=null?Arrays.asList(conditionReqDto.colorCode().split(",")):null,
                 conditionReqDto.productSize()!=null?Arrays.asList(conditionReqDto.productSize().split(",")):null,
                 categoryIdList,
@@ -149,25 +129,9 @@ public class ProductControllerImpl {
                 conditionReqDto.priceGoe(),
                 conditionReqDto.priceLt(),
                 userId,
-                conditionReqDto.orderBy()
+                conditionReqDto.orderBy(),
+                conditionReqDto.excludeSoldOut()
         );
-
-        Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
-
-        if (products.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ListResDto(
-                        new PageResDto(
-                                (long) products.getContent().size(),
-                                products.hasNext(),
-                                products.isFirst(),products.isLast()
-                        ),
-                        products.getContent()
-                ));
     }
 
     private List<Long> getCategoryIdListByCategoryPathString(String categories) {

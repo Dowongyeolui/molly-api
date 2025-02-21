@@ -5,7 +5,10 @@ import lombok.Getter;
 @Getter
 public enum OrderBy {
     CREATED_AT("createdAt"),
-    VIEW_COUNT("viewCount");
+    VIEW_COUNT("viewCount"),
+    PURCHASE_COUNT("purchaseCount"),
+    PRICE_DESC("priceDesc"),
+    PRICE_ASC("priceAsc");
 
     private final String value;
 

@@ -10,6 +10,7 @@ public record ProductFilterConditionReqDto(
         @RequestParam(required = false) String brandName,
         @RequestParam(required = false) Long priceGoe,
         @RequestParam(required = false) Long priceLt,
-        @RequestParam(required = false) OrderBy orderBy
+        @RequestParam(required = false) OrderBy orderBy,
+        @RequestParam(required = false) Boolean excludeSoldOut
 ) {
 }
