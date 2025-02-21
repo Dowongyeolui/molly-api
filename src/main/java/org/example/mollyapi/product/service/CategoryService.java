@@ -9,4 +9,5 @@ public interface CategoryService {
     List<String> getCategoryPath(Category category);
     Category getCategory(List<String> categories);
     List<Category> getLeafCategories(Category category);
+    List<Category> findEndWith(List<String> categories);
 }

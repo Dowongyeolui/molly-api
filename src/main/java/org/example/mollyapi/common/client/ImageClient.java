@@ -1,7 +1,7 @@
-package org.example.mollyapi.product.client;
+package org.example.mollyapi.common.client;
 
 import org.example.mollyapi.product.dto.UploadFile;
-import org.example.mollyapi.product.enums.ImageType;
+import org.example.mollyapi.common.enums.ImageType;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

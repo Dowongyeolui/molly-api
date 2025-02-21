@@ -1,4 +1,4 @@
-package org.example.mollyapi.product.enums;
+package org.example.mollyapi.common.enums;
 
 import lombok.Getter;
 

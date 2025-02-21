@@ -1,4 +1,4 @@
-package org.example.mollyapi.cart;
+package org.example.mollyapi.cart.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Cart Controller", description = "장바구니 기능을 담당")
+@Tag(name = "장바구니 Controller", description = "장바구니 기능을 담당")
 @RestController
 @RequestMapping("/cart")
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class CartController {
 
     @Auth
     @PostMapping("/add")
-    @Operation(summary = "장바구니에 상품 추가", description = "장바구니에 상품을 추가 할 수 있습니다.")
+    @Operation(summary = "장바구니에 상품 추가 API", description = "장바구니에 상품을 추가 할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "장바구니 담기 성공",
                     content = @Content(schema = @Schema(implementation = CommonResDto.class))),
@@ -48,7 +48,7 @@ public class CartController {
 
     @Auth
     @GetMapping()
-    @Operation(summary = "장바구니 상품 조회", description = "장바구니에 담긴 상품을 조회할 수 있습니다.")
+    @Operation(summary = "장바구니 상품 조회 API", description = "장바구니에 담긴 상품을 조회할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "장바구니 내역 조회 성공",
                     content = @Content(schema = @Schema(implementation = CartInfoResDto.class))),
@@ -64,7 +64,7 @@ public class CartController {
 
     @Auth
     @PutMapping()
-    @Operation(summary = "장바구니 상품 수정", description = "장바구니에 담긴 상품의 옵션을 수정할 수 있습니다.")
+    @Operation(summary = "장바구니 상품 수정 API", description = "장바구니에 담긴 상품의 옵션을 수정할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),
             @ApiResponse(responseCode = "400", description = "1. 존재하지 않는 사용자 \t\n 2. 요청이 잘못된 경우 \t\n 3. 존재하지 않는 상품 \t\n 4. 준비된 재고 초과",
@@ -82,7 +82,8 @@ public class CartController {
     @DeleteMapping()
     @Operation(summary = "장바구니 상품 삭제", description = "장바구니에 담긴 상품을 삭제할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "장바구니 내역 삭제 성공"),
+            @ApiResponse(responseCode = "204", description = "장바구니 내역 삭제 성공",
+                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 삭제 요청",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "장바구니 내역 삭제 실패",

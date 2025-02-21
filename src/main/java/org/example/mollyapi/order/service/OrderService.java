@@ -16,7 +16,6 @@ import org.example.mollyapi.order.repository.OrderDetailRepository;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.repository.PaymentRepository;
-import org.example.mollyapi.payment.service.PaymentService;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductItem;
 import org.example.mollyapi.product.repository.ProductItemRepository;
@@ -135,6 +134,7 @@ public class OrderService {
                     .quantity(req.getQuantity())
                     .brandName(product.getBrandName())
                     .productName(product.getProductName())
+                    .cartId(req.getCartId())
                     .build();
         }).collect(Collectors.toList());
 
@@ -272,8 +272,8 @@ public class OrderService {
         delivery.setStatus(DeliveryStatus.RETURN_REQUESTED);
         deliveryRepository.save(delivery);
 
-        delivery.setStatus(DeliveryStatus.RETURN_ARRIVED);
-        deliveryRepository.save(delivery);
+//        delivery.setStatus(DeliveryStatus.RETURN_ARRIVED); // 반품 완료 처리는 API에서 수행하도록 분리
+//        deliveryRepository.save(delivery);
 
         // 포인트 환불
         refundUserPoints(order);

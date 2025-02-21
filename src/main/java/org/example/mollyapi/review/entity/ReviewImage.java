@@ -30,7 +30,7 @@ public class ReviewImage extends Base {
     private Boolean isVideo; //비디오 여부. 0: False, 1: True
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id")
+    @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
     private Review review;
 
     @Builder
@@ -40,14 +40,14 @@ public class ReviewImage extends Base {
             boolean isVideo,
             Review review
     ) {
-        this.url = uploadFile.getUploadFileName();
-        this.filename = uploadFile.getStoredFileName();
+        this.url = uploadFile.getStoredFileName();
+        this.filename = uploadFile.getUploadFileName();
         this.imageIndex = imageIndex;
         this.isVideo = isVideo;
         this.review = review;
     }
 
-    public static ReviewImage createReviewImage(Review review, UploadFile uploadFile, Long idx) {
+    public static ReviewImage createReviewImage(Review review, UploadFile uploadFile, long idx) {
         return new ReviewImage(uploadFile, idx, false, review);
     }
 }

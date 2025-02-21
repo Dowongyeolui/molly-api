@@ -5,9 +5,7 @@ import org.example.mollyapi.product.entity.Category;
 import org.example.mollyapi.product.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +49,33 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         throw new IllegalArgumentException("Category not found");
+    }
+
+    @Override
+    public List<Category> findEndWith(List<String> categories) {
+        if (categories == null || categories.isEmpty()) {
+            throw new IllegalArgumentException("Categories cannot be empty");
+        }
+
+        String end = categories.get(categories.size() - 1);
+        List<Category> categoryList = categoryRepository.findByCategoryName(end);
+
+        return categoryList.stream().filter((category) -> isEndWith(category, categories)).toList();
+    }
+
+    private Boolean isEndWith(Category category, List<String> categories) {
+        Category c = category;
+        List<String> newCategories = new ArrayList<>(categories);
+        Collections.reverse(newCategories);
+
+        for (String categoryName : newCategories) {
+            if (categoryName.equals(c.getCategoryName())) {
+                c = c.getParent();
+            } else {
+                return Boolean.FALSE;
+            }
+        }
+        return Boolean.TRUE;
     }
 
     @Override

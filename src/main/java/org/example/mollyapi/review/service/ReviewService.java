@@ -1,6 +1,7 @@
 package org.example.mollyapi.review.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.mollyapi.common.client.ImageClient;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.order.entity.OrderDetail;
 import org.example.mollyapi.order.repository.OrderDetailRepository;
@@ -8,7 +9,7 @@ import org.example.mollyapi.product.dto.UploadFile;
 import org.example.mollyapi.product.dto.response.ListResDto;
 import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.product.entity.Product;
-import org.example.mollyapi.product.file.FileStore;
+import org.example.mollyapi.common.enums.ImageType;
 import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.review.dto.request.AddReviewReqDto;
 import org.example.mollyapi.review.dto.response.GetMyReviewResDto;
@@ -17,6 +18,8 @@ import org.example.mollyapi.review.dto.response.MyReviewInfoDto;
 import org.example.mollyapi.review.dto.response.ReviewInfoDto;
 import org.example.mollyapi.review.entity.Review;
 import org.example.mollyapi.review.entity.ReviewImage;
+import org.example.mollyapi.review.repository.ReviewImageRepository;
+import org.example.mollyapi.review.repository.ReviewLikeRepository;
 import org.example.mollyapi.review.repository.ReviewRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
@@ -39,11 +42,13 @@ import static org.example.mollyapi.common.exception.error.impl.UserError.NOT_EXI
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
-    private final FileStore fileStore;
+    private final ImageClient imageClient;
     private final UserRepository userRep;
     private final ProductRepository productRep;
     private final OrderDetailRepository orderDetailRep;
     private final ReviewRepository reviewRep;
+    private final ReviewImageRepository reviewImageRep;
+    private final ReviewLikeRepository reviewLikeRep;
 
     /**
      * 리뷰 작성 기능
@@ -52,13 +57,13 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void addReview(
+    public void registerReview(
             AddReviewReqDto addReviewReqDto, // Long orderDetailId, String content
             List<MultipartFile> uploadImages,
             Long userId
     ) {
         Long orderDetailId = addReviewReqDto.id(); //주문상세 PK
-        String content = addReviewReqDto.content();
+        String content = addReviewReqDto.content(); //리뷰 내용
 
         // 가입된 사용자 여부 체크
         User user = userRep.findById(userId)
@@ -76,30 +81,20 @@ public class ReviewService {
         Review review = reviewRep.findByIsDeletedAndOrderDetailIdAndUserUserId(true, orderDetailId, userId);
         if(review != null) throw new CustomException(NOT_ACCESS_REVIEW);
 
-        // 업로드된 이미지 파일 저장
-        List<UploadFile> uploadImageFiles = fileStore.storeFiles(uploadImages);
-
         // 리뷰 생성
         Review newReview = Review.builder()
                 .content(content)
-                .reviewImages(null)
-                .isDeleted(false)
+                .isDeleted(Boolean.FALSE)
                 .user(user)
                 .orderDetail(orderDetail)
                 .product(product)
                 .build();
 
-        //저장된 파일로 리뷰 이미지 생성
-        List<ReviewImage> images = new ArrayList<>();
-        for(int i=0; i< uploadImageFiles.size(); i++) {
-            images.add(ReviewImage.createReviewImage(newReview, uploadImageFiles.get(i), (long) i));
-        }
+        // 업로드된 이미지 파일 저장
+        saveReviewImages(newReview, uploadImages);
 
-        // 리뷰에 이미지 추가
-        newReview.updateImages(images);
         reviewRep.save(newReview);
     }
-
 
     /**
      * 상품별 리뷰 조회
@@ -223,23 +218,15 @@ public class ReviewService {
                 .orElseThrow(() -> new CustomException(NOT_ACCESS_REVIEW));
 
         // 리뷰 내용 변경
-        if(content != null)
-            review.updateContent(content);
+        if(content != null) review.updateContent(content);
 
         // 리뷰 이미지 변경 여부 체크
         if(uploadImages != null) {
-            //이미지 새로 등록
-            List<UploadFile> uploadImageFiles = fileStore.storeFiles(uploadImages); // 업로드된 이미지 파일 저장
-
-            //저장된 파일로 리뷰 이미지 생성
-            List<ReviewImage> newImages = new ArrayList<>();
-            for(int i=0; i< uploadImageFiles.size(); i++) {
-                newImages.add(ReviewImage.createReviewImage(review, uploadImageFiles.get(i), (long) i));
-            }
+            // 기존의 리뷰 이미지 삭제
+            // 추가 예정
 
             // 리뷰에 새로운 이미지 추가
-            review.getReviewImages().clear(); // 기존 리스트를 유지하면서 요소만 삭제
-            review.getReviewImages().addAll(newImages); // 새로운 이미지 추가
+            saveReviewImages(review, uploadImages);
             reviewRep.save(review);
         }
     }
@@ -255,9 +242,32 @@ public class ReviewService {
         Review review = reviewRep.findByIdAndUserUserId(reviewId, userId)
                 .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
 
+        // 리뷰 삭제 여부 변경
         boolean isUpdate = review.updateIsDeleted(Boolean.TRUE);
         if(!isUpdate) throw new CustomException(FAIL_UPDATE);
 
+        // 리뷰와 연결된 이미지 삭제 - 이미지 서버(구현 예정)
+        // 리뷰와 연결된 이미지 삭제 - 테이블
+        // reviewImageRep.deleteAllByReviewId(reviewId);
+
+        // 리뷰와 연결된 좋아요 삭제
+        reviewLikeRep.deleteAllByReviewId(reviewId);
+
         return ResponseEntity.ok().body("리뷰 삭제에 성공했습니다.");
+    }
+
+    /**
+     * 업로드된 이미지 파일 저장
+     * @param review review Entity
+     * @param uploadImages 업로드한 이미지 파일
+     * */
+    private void saveReviewImages(Review review, List<MultipartFile> uploadImages) {
+        List<UploadFile> uploadFiles = imageClient.upload(ImageType.REVIEW, uploadImages);
+
+        for (int i = 0; i < uploadFiles.size(); i++) {
+            UploadFile uploadFile = uploadFiles.get(i);
+            ReviewImage reviewImage = ReviewImage.createReviewImage(review, uploadFile, i);
+            review.addImage(reviewImage);  // 리뷰에 이미지 추가
+        }
     }
 }

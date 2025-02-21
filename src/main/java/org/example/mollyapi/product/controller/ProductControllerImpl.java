@@ -48,7 +48,8 @@ public class ProductControllerImpl {
     @Operation(summary = "상품 정보 목록",
             description = "상품 정보와 옵션별 상품 아이템 데이터 조회,  " +
                     "파라미터 예시: ?categories=여성,아우터,  " +
-                    "priceGoe= ~이상, priceLt= ~미만"
+                    "priceGoe= ~이상, priceLt= ~미만, " +
+                    "colorCode, productSize 복수선택가능(쉼표(,)로 구분), 예시: L,XL / #8D429F,#1790C8"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상품 목록 반환",
@@ -70,16 +71,22 @@ public class ProductControllerImpl {
     ) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        List<Long> categoryIdList = new ArrayList<>();
-        List<String> categoriesList = categories == null ? null : Arrays.asList(categories.split(","));
-        if (categoriesList != null) {
-            Category category = categoryService.getCategory(categoriesList);
-            categoryIdList = categoryService.getLeafCategories(category).stream().map(Category::getId).toList();
+        List<String> categoryPath = categories == null ? null : Arrays.asList(categories.split(","));
+
+        List<Long> categoryIdList = null;
+        if (categoryPath != null) {
+            categoryIdList = new ArrayList<>();
+            List<Category> categoryListEndWith = categoryService.findEndWith(categoryPath);
+
+            for (Category categoryEndWith : categoryListEndWith) {
+                List<Long> longList = categoryService.getLeafCategories(categoryEndWith).stream().map(Category::getId).toList();
+                categoryIdList.addAll(longList);
+            }
         }
 
         ProductFilterCondition condition = new ProductFilterCondition(
-                colorCode,
-                productSize,
+                colorCode!=null?Arrays.asList(colorCode.split(",")):null,
+                productSize!=null?Arrays.asList(productSize.split(",")):null,
                 categoryIdList,
                 brandName,
                 priceGoe,
@@ -111,7 +118,8 @@ public class ProductControllerImpl {
     @Operation(summary = "상품 정보 목록(판매자용)",
             description = "상품 정보와 옵션별 상품 아이템 데이터 조회,  " +
                     "파라미터 예시: ?categories=여성,아우터,  " +
-                    "priceGoe= ~이상, priceLt= ~미만"
+                    "priceGoe= ~이상, priceLt= ~미만, " +
+                    "colorCode, productSize 복수선택가능(쉼표(,)로 구분), 예시: L,XL / #8D429F,#1790C8"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상품 목록 반환",
@@ -135,17 +143,22 @@ public class ProductControllerImpl {
         Long userId = (Long) request.getAttribute("userId");
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        List<Long> categoryIdList = new ArrayList<>();
-        List<String> categoriesList = categories == null ? null : Arrays.asList(categories.split(","));
+        List<String> categoryPath = categories == null ? null : Arrays.asList(categories.split(","));
 
-        if (categoriesList != null) {
-            Category category = categoryService.getCategory(categoriesList);
-            categoryIdList = categoryService.getLeafCategories(category).stream().map(Category::getId).toList();
+        List<Long> categoryIdList = null;
+        if (categoryPath != null) {
+            categoryIdList = new ArrayList<>();
+            List<Category> categoryListEndWith = categoryService.findEndWith(categoryPath);
+
+            for (Category categoryEndWith : categoryListEndWith) {
+                List<Long> longList = categoryService.getLeafCategories(categoryEndWith).stream().map(Category::getId).toList();
+                categoryIdList.addAll(longList);
+            }
         }
 
         ProductFilterCondition condition = new ProductFilterCondition(
-                colorCode,
-                productSize,
+                colorCode!=null?Arrays.asList(colorCode.split(",")):null,
+                productSize!=null?Arrays.asList(productSize.split(",")):null,
                 categoryIdList,
                 brandName,
                 priceGoe,

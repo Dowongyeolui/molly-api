@@ -9,8 +9,8 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class ProductFilterCondition {
-    String colorCode;
-    String size;
+    List<String> colorCode;
+    List<String> size;
 
     List<Long> categoryId;
     String brandName;

@@ -89,12 +89,12 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         }
         return new SliceImpl<ProductAndThumbnailDto>(content, pageable, hasNext);
     }
-    private BooleanExpression colorCodeEq(String colorCode) {
-        return hasText(colorCode)? productItem.colorCode.eq(colorCode) : null;
+    private BooleanExpression colorCodeEq(List<String> colorCode) {
+        return colorCode != null && !colorCode.isEmpty()? productItem.colorCode.in(colorCode): null;
     }
 
-    private BooleanExpression sizeEq(String size) {
-        return hasText(size)? productItem.size.eq(size) : null;
+    private BooleanExpression sizeEq(List<String> size) {
+        return size != null && !size.isEmpty()? productItem.size.in(size) : null;
     }
 
     private BooleanExpression categoryIdEq(List<Long> categoryId) {

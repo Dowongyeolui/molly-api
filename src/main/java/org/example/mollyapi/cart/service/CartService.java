@@ -1,6 +1,7 @@
 package org.example.mollyapi.cart.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.cart.dto.Response.CartInfoDto;
 import org.example.mollyapi.cart.dto.Request.AddCartReqDto;
 import org.example.mollyapi.cart.dto.Request.UpdateCartReqDto;
@@ -14,7 +15,6 @@ import org.example.mollyapi.product.repository.ProductItemRepository;
 import org.example.mollyapi.product.service.ProductServiceImpl;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +26,7 @@ import static org.example.mollyapi.common.exception.error.impl.CartError.*;
 import static org.example.mollyapi.common.exception.error.impl.ProductItemError.*;
 import static org.example.mollyapi.common.exception.error.impl.UserError.NOT_EXISTS_USER;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -37,7 +38,7 @@ public class CartService {
     /**
      * 장바구니에 상품 담기 기능
      * @param addCartReqDto 추가하려는 데이터
-     * @param userId     사용자 PK
+     * @param userId 사용자 PK
      */
     @Transactional
     public ResponseEntity<?> addCart(AddCartReqDto addCartReqDto, Long userId) {
@@ -50,25 +51,28 @@ public class CartService {
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_ITEM));
 
         // 3. 상품의 재고가 남아 있는 지 체크
-        if(item.getQuantity() == 0)
-            throw new CustomException(SOLD_OUT);
+        if(item.getQuantity() == 0) throw new CustomException(SOLD_OUT);
 
         // 4. 장바구니에 동일한 상품이 담겨 있는 지 체크
-        Cart cart = cartRep.findByProductItemIdAndUserUserId(addCartReqDto.itemId(), userId)
-                .orElseGet(() -> insertNewCart(addCartReqDto, user, item)); // 5. 존재하지 않으면 삽입
+        Cart cart = cartRep.findByProductItemIdAndUserUserId(addCartReqDto.itemId(), userId);
 
-        // 6. 초과 수량을 장바구니에 담는 지 체크
-        long totalQuantity = cart.getQuantity() + addCartReqDto.quantity(); //기존에 담아둔 수량 + 추가 하려는 수량
-        if(totalQuantity > item.getQuantity()) //재고 수량을 초과할 경우
-            throw new CustomException(OVER_QUANTITY);
+        // 5. 존재하지 않으면 삽입
+        if(cart == null) insertNewCart(addCartReqDto, user, item);
+        else {
+            // 6. 초과 수량을 장바구니에 담는 지 체크
+            long totalQuantity = cart.getQuantity() + addCartReqDto.quantity(); //기존에 담아둔 수량 + 추가 하려는 수량
+            if (totalQuantity > item.getQuantity()) //재고 수량을 초과할 경우
+                throw new CustomException(OVER_QUANTITY);
 
-        // 6-1. 수량 업데이트
-        try {
-            cart.updateQuantity(totalQuantity);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (CustomException e) {
-            throw new CustomException(FAIL_UPDATE); // 수량 업데이트 실패
+            // 6-1. 수량 업데이트
+            try {
+                cart.updateQuantity(totalQuantity);
+            } catch (CustomException e) {
+                throw new CustomException(FAIL_UPDATE); // 수량 업데이트 실패
+            }
         }
+
+        return ResponseEntity.ok().body("장바구니 등록에 성공했습니다.");
     }
 
     /**
@@ -76,9 +80,8 @@ public class CartService {
      * @param addCartReqDto 추가하려는 데이터
      * @param user 사용자 정보
      * @param item 상품 정보
-     * @return Cart 반환
      */
-    public Cart insertNewCart(AddCartReqDto addCartReqDto, User user, ProductItem item) {
+    public void insertNewCart(AddCartReqDto addCartReqDto, User user, ProductItem item) {
         // 재고 수량 초과 체크
         if(item.getQuantity() < addCartReqDto.quantity())
             throw new CustomException(OVER_QUANTITY);
@@ -95,7 +98,7 @@ public class CartService {
                 .productItem(item)
                 .build();
 
-        return cartRep.save(newCart);
+        cartRep.save(newCart); //장바구니에 데이터 추가
     }
 
     /**

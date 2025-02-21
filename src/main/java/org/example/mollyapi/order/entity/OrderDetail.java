@@ -37,6 +37,9 @@ public class OrderDetail {
 
     private String productName;
 
+    @Column(name = "cart_id", nullable = true)
+    private Long cartId;
+
     public ProductItem getProductItem() {
         return productItem;
     }
@@ -46,7 +49,7 @@ public class OrderDetail {
     }
 
     @Builder
-    public OrderDetail(Order order, ProductItem productItem, String size, Long price, Long quantity,String brandName, String productName) {
+    public OrderDetail(Order order, ProductItem productItem, String size, Long price, Long quantity,String brandName, String productName, Long cartId) {
         this.order = order;
         this.productItem = productItem;
         this.size = size;
@@ -54,5 +57,6 @@ public class OrderDetail {
         this.quantity = quantity;
         this.brandName =brandName;
         this.productName = productName;
+        this.cartId = cartId;
     }
 }

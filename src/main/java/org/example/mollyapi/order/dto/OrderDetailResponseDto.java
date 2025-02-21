@@ -15,6 +15,8 @@ public class OrderDetailResponseDto {
     private String size;
     private Long price;
     private Long quantity;
+    private String image;
+    private String color;
 
     public static OrderDetailResponseDto from(OrderDetail orderDetail) {
         return OrderDetailResponseDto.builder()
@@ -26,6 +28,8 @@ public class OrderDetailResponseDto {
                 .size(orderDetail.getProductItem().getSize())
                 .price(orderDetail.getPrice())
                 .quantity(orderDetail.getQuantity())
+                .image(orderDetail.getProductItem().getProduct().getThumbnail().getStoredFileName())
+                .color(orderDetail.getProductItem().getColor())
                 .build();
     }
 }

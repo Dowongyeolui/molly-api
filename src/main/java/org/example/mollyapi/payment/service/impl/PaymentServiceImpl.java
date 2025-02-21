@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
 import org.example.mollyapi.address.dto.AddressRequestDto;
+import org.example.mollyapi.cart.entity.Cart;
+import org.example.mollyapi.cart.repository.CartRepository;
+import org.example.mollyapi.cart.service.CartService;
 import org.example.mollyapi.common.config.WebClientUtil;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.PaymentError;
@@ -63,6 +66,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentWebClientUtil paymentWebClientUtil;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final CartService cartService;
+    private final CartRepository cartRepository;
 
 
     @Value("${secret.payment-api-key}")
@@ -308,6 +313,30 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 결제 정보 업데이트
         order.updatePaymentInfo(paymentId, paymentType, paymentAmount, pointUsage);
+
+        // 장바구니에서 주문한 상품 차감
+        for (OrderDetail orderDetail : order.getOrderDetails()) {
+            Long cartId = orderDetail.getCartId();
+            if (cartId == null) {
+                log.warn("⚠️ 주문 상세에서 cartId가 null입니다. orderDetailId={}", orderDetail.getId());
+                continue;
+            }
+
+            // 장바구니에서 해당 cartId로 조회
+            Cart cart = cartRepository.findById(cartId)
+                    .orElseThrow(() -> new IllegalArgumentException("해당 장바구니 항목을 찾을 수 없습니다. cartId=" + cartId));
+
+            if (cart.getQuantity() > orderDetail.getQuantity()) {
+                // 주문 개수만큼 차감 후 저장
+                cart.updateQuantity(cart.getQuantity() - orderDetail.getQuantity());
+                cartRepository.save(cart);
+                log.info("🛒 장바구니 업데이트: cartId={}, 남은 수량={}", cartId, cart.getQuantity());
+            } else {
+                // 주문 수량과 같거나 초과하면 장바구니에서 삭제
+                cartRepository.delete(cart);
+                log.info("🗑️ 장바구니에서 삭제됨: cartId={}", cartId);
+            }
+        }
 
         // 배송 정보 생성
         createDelivery(order, deliveryInfoJson);

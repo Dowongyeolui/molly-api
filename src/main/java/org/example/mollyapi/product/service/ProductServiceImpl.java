@@ -2,15 +2,14 @@ package org.example.mollyapi.product.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.product.client.ImageClient;
+import org.example.mollyapi.common.client.ImageClient;
 import org.example.mollyapi.product.dto.*;
 import org.example.mollyapi.product.dto.response.*;
 import org.example.mollyapi.product.entity.Category;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductImage;
 import org.example.mollyapi.product.entity.ProductItem;
-import org.example.mollyapi.product.enums.ImageType;
-import org.example.mollyapi.product.file.FileStore;
+import org.example.mollyapi.common.enums.ImageType;
 import org.example.mollyapi.product.repository.CategoryRepository;
 import org.example.mollyapi.product.repository.ProductItemRepository;
 import org.example.mollyapi.product.repository.ProductRepository;

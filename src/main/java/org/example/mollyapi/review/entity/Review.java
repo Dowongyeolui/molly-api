@@ -44,6 +44,13 @@ public class Review extends Base {
     @Builder.Default
     private List<ReviewImage> reviewImages = new ArrayList<>(); //리뷰 이미지 리스트
 
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ReviewLike> reviewLike = new ArrayList<>(); //리뷰 좋아요 리스트
+
+    public void addImage(ReviewImage reviewImage) {
+        this.reviewImages.add(reviewImage);
+    }
 
     public void updateImages(List<ReviewImage> reviewImage) {
         this.reviewImages = reviewImage;
