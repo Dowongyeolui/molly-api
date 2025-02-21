@@ -54,7 +54,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<Category> findEndWith(List<String> categories) {
         if (categories == null || categories.isEmpty()) {
-            throw new IllegalArgumentException("Categories cannot be empty");
+            return Collections.emptyList();
         }
 
         String end = categories.get(categories.size() - 1);
@@ -95,5 +95,23 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         return categories;
+    }
+
+    @Override
+    public List<Category> getAllLeafCategories(List<Category> categoryList) {
+        List<Category> leafCategoryList = new ArrayList<>();
+
+        for (Category category : categoryList) {
+            leafCategoryList.addAll(getLeafCategories(category));
+        }
+
+        return leafCategoryList;
+    }
+
+    @Override
+    public List<Category> findEndWith(String categories) {
+        List<String> categoryPath = categories == null ? null : Arrays.asList(categories.split(","));
+
+        return findEndWith(categoryPath);
     }
 }

@@ -31,6 +31,7 @@ import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.PaymentService;
+import org.example.mollyapi.payment.util.AESUtil;
 import org.example.mollyapi.payment.util.MapperUtil;
 import org.example.mollyapi.payment.util.PaymentWebClientUtil;
 import org.example.mollyapi.product.entity.ProductItem;
@@ -77,7 +78,7 @@ public class PaymentServiceImpl implements PaymentService {
         결제 로직
      */
     @Transactional
-    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, String paymentType, DeliveryReqDto deliveryInfo) {
+    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, String point, String paymentType, DeliveryReqDto deliveryInfo) {
         /* 1. find order with tossOrderId
          2. validate amount
          3. success/failure logic
@@ -96,8 +97,11 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new CustomException(PaymentError.ORDER_NOT_FOUND));
         Long orderAmount = order.getTotalAmount();
 
+        // 포인트 decode 후 정수 변환
+        Integer pointUsage = Integer.parseInt(AESUtil.decrypt(point));
+
         // 유저 포인트 검증
-        validateUserPoint(userId, point);
+        validateUserPoint(userId, pointUsage);
 
         // 결제정보 검증
         validateAmount(orderAmount, amount);
@@ -120,7 +124,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 결제 성공 및 실패 로직
         if (res) {
-            successPayment(payment, tossOrderId, point, deliveryInfoJson);
+            successPayment(payment, tossOrderId, pointUsage, deliveryInfoJson);
         } else {
             failPayment(payment, tossOrderId, "실패");
         }
@@ -299,7 +303,6 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 주문 상태 변경
         order.setStatus(OrderStatus.SUCCEEDED);
-
         // 사용자의 포인트 차감
         User user = order.getUser();
         if (pointUsage != null && pointUsage > 0) {
@@ -349,11 +352,11 @@ public class PaymentServiceImpl implements PaymentService {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode deliveryInfo = objectMapper.readTree(deliveryInfoJson);
 
-            String receiverName = deliveryInfo.get("receiver_name").asText();
-            String receiverPhone = deliveryInfo.get("receiver_phone").asText();
-            String roadAddress = deliveryInfo.get("road_address").asText();
-            String numberAddress = deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null;
-            String addrDetail = deliveryInfo.get("addr_detail").asText();
+            String receiverName = AESUtil.decrypt(deliveryInfo.get("receiver_name").asText());
+            String receiverPhone = AESUtil.decrypt(deliveryInfo.get("receiver_phone").asText());
+            String roadAddress = AESUtil.decrypt(deliveryInfo.get("road_address").asText());
+            String numberAddress = AESUtil.decrypt(deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null);
+            String addrDetail = AESUtil.decrypt(deliveryInfo.get("addr_detail").asText());
 
             // 배송 정보 생성
             Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail);

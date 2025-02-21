@@ -12,7 +12,7 @@ import java.util.List;
 public interface PaymentService {
 
     //결제 승인 절차
-    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, Integer point, String paymentType, DeliveryReqDto delivery);
+    public Payment processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, String point, String paymentType, DeliveryReqDto delivery);
 
     //결제 성공 절차
     public void successPayment(Payment payment, String tossOrderId,Integer point, String deliveryInfoJson);

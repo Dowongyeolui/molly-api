@@ -5,10 +5,9 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.search.dto.AutoWordResDto;
+import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.ItemDto;
 import org.example.mollyapi.search.dto.SearchItemResDto;
-import org.example.mollyapi.search.entity.QSearch;
 import org.example.mollyapi.search.repository.SearchCustomRepository;
 
 
@@ -103,7 +102,7 @@ public class SearchCustomRepositoryImpl implements SearchCustomRepository {
     }
 
     @Override
-    public AutoWordResDto searchAutoWord(String keyword) {
+    public SearchCommonResDto searchAutoWord(String keyword) {
 
         String likeKeyword = "%" + keyword + "%";
         List<String> fetch = jpaQueryFactory.select(
@@ -112,7 +111,19 @@ public class SearchCustomRepositoryImpl implements SearchCustomRepository {
                 .where(search.keyword.like(likeKeyword))
                 .limit(10)
                 .fetch();
-        return new AutoWordResDto(fetch);
+        return new SearchCommonResDto(fetch);
+    }
+
+    @Override
+    public SearchCommonResDto searchBrand(String keyword) {
+        String likeKeyword = "%" + keyword + "%";
+        List<String> fetch = jpaQueryFactory.selectDistinct(
+                product.brandName
+        ).from(product)
+                .where(product.brandName.like(likeKeyword))
+                .limit(10)
+                .fetch();
+        return new SearchCommonResDto(fetch);
     }
 
 

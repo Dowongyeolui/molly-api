@@ -18,6 +18,7 @@ import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.service.PaymentService;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
+import org.example.mollyapi.payment.util.AESUtil;
 import org.example.mollyapi.payment.util.MapperUtil;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.ResponseEntity;
@@ -127,7 +128,7 @@ public class PaymentController {
 
         paymentService.successPayment(payment,
                 paymentConfirmReqDto.tossOrderId(),
-                paymentConfirmReqDto.point(),
+                Integer.parseInt(AESUtil.decrypt(paymentConfirmReqDto.point())),
                 MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery())
                 );
 

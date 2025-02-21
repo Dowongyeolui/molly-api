@@ -2,9 +2,6 @@ package org.example.mollyapi.search.controller;
 
 
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,11 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.search.dto.AutoWordResDto;
-import org.example.mollyapi.search.dto.ItemDto;
+import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.SearchItemResDto;
 import org.example.mollyapi.search.service.SearchService;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Tag(name = "Search Controller", description = "검색 관련 엔드 포인트")
 @RestController
@@ -59,10 +53,21 @@ public class SearchController {
     @Operation(summary = "검색어 자동 완성 기능", description = "검색어 자동 완성")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = AutoWordResDto.class))),
+                    content = @Content(schema = @Schema(implementation = SearchCommonResDto.class))),
     })
-    public ResponseEntity<AutoWordResDto> searchWord(@RequestParam(required = false) String keyword){
-        AutoWordResDto result = searchService.searchWord(keyword);
+    public ResponseEntity<SearchCommonResDto> searchWord(@RequestParam(required = false) String keyword){
+        SearchCommonResDto result = searchService.searchWord(keyword);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/brand")
+    @Operation(summary = "브랜드 검색 기능", description = "브랜드 검색")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "성공",
+                    content = @Content(schema = @Schema(implementation = SearchCommonResDto.class))),
+    })
+    public ResponseEntity<SearchCommonResDto> searchBrand(@RequestParam(required = false) String keyword){
+        SearchCommonResDto result = searchService.searchBrand(keyword);
         return ResponseEntity.ok(result);
     }
 }

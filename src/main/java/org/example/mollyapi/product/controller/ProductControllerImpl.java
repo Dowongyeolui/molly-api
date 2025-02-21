@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.product.dto.BrandSummaryDto;
 import org.example.mollyapi.product.dto.ProductFilterCondition;
+import org.example.mollyapi.product.dto.request.ProductFilterConditionReqDto;
 import org.example.mollyapi.product.dto.response.ListResDto;
 import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.product.entity.Category;
@@ -23,6 +24,7 @@ import org.example.mollyapi.product.service.ProductService;
 import org.example.mollyapi.product.dto.request.ProductReqDto;
 import org.example.mollyapi.product.dto.response.ProductResDto;
 import org.example.mollyapi.user.auth.annotation.Auth;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.MediaType;
@@ -130,41 +132,24 @@ public class ProductControllerImpl {
     })
     public ResponseEntity<ListResDto> getAllProductsBySeller(
             HttpServletRequest request,
-            @RequestParam(required = false) String colorCode,
-            @RequestParam(required = false) String productSize,
-            @RequestParam(required = false) String categories,
-            @RequestParam(required = false) String brandName,
-            @RequestParam(required = false) Long priceGoe,
-            @RequestParam(required = false) Long priceLt,
-            @RequestParam(required = false) OrderBy orderBy,
+            @ParameterObject ProductFilterConditionReqDto conditionReqDto,
             @RequestParam int page,
             @RequestParam int size
     ) {
-        Long userId = (Long) request.getAttribute("userId");
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        List<String> categoryPath = categories == null ? null : Arrays.asList(categories.split(","));
-
-        List<Long> categoryIdList = null;
-        if (categoryPath != null) {
-            categoryIdList = new ArrayList<>();
-            List<Category> categoryListEndWith = categoryService.findEndWith(categoryPath);
-
-            for (Category categoryEndWith : categoryListEndWith) {
-                List<Long> longList = categoryService.getLeafCategories(categoryEndWith).stream().map(Category::getId).toList();
-                categoryIdList.addAll(longList);
-            }
-        }
+        Long userId = (Long) request.getAttribute("userId");
+        List<Long> categoryIdList = getCategoryIdListByCategoryPathString(conditionReqDto.categories());
 
         ProductFilterCondition condition = new ProductFilterCondition(
-                colorCode!=null?Arrays.asList(colorCode.split(",")):null,
-                productSize!=null?Arrays.asList(productSize.split(",")):null,
+                conditionReqDto.colorCode()!=null?Arrays.asList(conditionReqDto.colorCode().split(",")):null,
+                conditionReqDto.productSize()!=null?Arrays.asList(conditionReqDto.productSize().split(",")):null,
                 categoryIdList,
-                brandName,
-                priceGoe,
-                priceLt,
+                conditionReqDto.brandName(),
+                conditionReqDto.priceGoe(),
+                conditionReqDto.priceLt(),
                 userId,
-                orderBy
+                conditionReqDto.orderBy()
         );
 
         Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
@@ -183,6 +168,11 @@ public class ProductControllerImpl {
                         ),
                         products.getContent()
                 ));
+    }
+
+    private List<Long> getCategoryIdListByCategoryPathString(String categories) {
+        List<Category> categoryListEndWith = categoryService.findEndWith(categories);
+        return categoryService.getAllLeafCategories(categoryListEndWith).stream().map(Category::getId).toList();
     }
 
 
