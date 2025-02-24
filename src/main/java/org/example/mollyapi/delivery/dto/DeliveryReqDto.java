@@ -11,7 +11,9 @@ public record DeliveryReqDto(
         String road_address,
         @Schema(description = "지번", example = "12345")
         String number_address,
-        @Schema(description = "배송 세부사항", example = "배송 조심히 해주세요")
-        String addr_detail
+        @Schema(description = "상세주소", example = "902호")
+        String addr_detail,
+        @Schema(description = "기본 배송지 여부", example = "false")
+        boolean defaultAddr
 ) {
 }

@@ -357,9 +357,17 @@ public class PaymentServiceImpl implements PaymentService {
             String roadAddress = AESUtil.decryptWithSalt(deliveryInfo.get("road_address").asText());
             String numberAddress = AESUtil.decryptWithSalt(deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null);
             String addrDetail = AESUtil.decryptWithSalt(deliveryInfo.get("addr_detail").asText());
+            boolean defaultAddr = deliveryInfo.has("defaultAddr") && deliveryInfo.get("defaultAddr").isBoolean()
+                    ? deliveryInfo.get("defaultAddr").asBoolean()
+                    : "true".equalsIgnoreCase(deliveryInfo.get("defaultAddr").asText());
+
+            // 필수 필드 체크 (null이면 예외 발생)
+            if (receiverName == null || receiverPhone == null || roadAddress == null || addrDetail == null) {
+                throw new IllegalArgumentException("배송 정보에 필수 값이 누락되었습니다.");
+            }
 
             // 배송 정보 생성
-            Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail);
+            Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail, defaultAddr);
 
             // 배송 정보 저장
             deliveryRepository.save(delivery);

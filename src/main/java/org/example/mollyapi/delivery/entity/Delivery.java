@@ -38,11 +38,14 @@ public class Delivery {
     @Column(nullable = false)
     private String addrDetail;
 
+    @Column(nullable = false)
+    private boolean defaultAddr;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order; // 주문 정보와 1:1 매핑
+    private Order order;
 
-    public static Delivery from(Order order, String receiverName, String receiverPhone, String roadAddress, String numberAddress, String addrDetail) {
+    public static Delivery from(Order order, String receiverName, String receiverPhone, String roadAddress, String numberAddress, String addrDetail, boolean defaultAddr) {
         Delivery delivery = Delivery.builder()
                 .order(order)
                 .status(DeliveryStatus.READY)
@@ -51,9 +54,10 @@ public class Delivery {
                 .roadAddress(roadAddress)
                 .numberAddress(numberAddress)
                 .addrDetail(addrDetail)
+                .defaultAddr(defaultAddr)
                 .build();
 
-        order.setDelivery(delivery); // 주문과 배송 연결
+        order.setDelivery(delivery);
         return delivery;
     }
 
