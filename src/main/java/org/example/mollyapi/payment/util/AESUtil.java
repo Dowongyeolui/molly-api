@@ -1,8 +1,10 @@
 package org.example.mollyapi.payment.util;
 
+import jakarta.annotation.PostConstruct;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.AESError;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -12,22 +14,29 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Base64;
 
+@Component
 public class AESUtil {
 
     @Value("${aes.secret-key}")
-    private static String AESKey;
+    private String AESKey;
 
+    private static String AESKEY;
+
+    @PostConstruct
+    public void init() {
+        AESKEY = AESKey;
+    }
 
     public static String encrypt(String data) throws Exception {
         Cipher cipher = Cipher.getInstance("AES");
-        SecretKey secretKey = new SecretKeySpec(AESKey.getBytes(), "AES");
+        SecretKey secretKey = new SecretKeySpec(AESKEY.getBytes(), "AES");
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         return Base64.getEncoder().encodeToString(cipher.doFinal(data.getBytes()));
     }
 
     public static String decrypt(String encryptedData){
         try {
-            SecretKey secretKey = new SecretKeySpec(AESKey.getBytes(StandardCharsets.UTF_8), "AES");
+            SecretKey secretKey = new SecretKeySpec(AESKEY.getBytes(StandardCharsets.UTF_8), "AES");
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return new String(cipher.doFinal(Base64.getDecoder().decode(encryptedData)));
@@ -47,7 +56,7 @@ public class AESUtil {
                 byte[] cipherText = Arrays.copyOfRange(encryptedBytes, 16, encryptedBytes.length); // 암호문
 
                 // 3️⃣ Salt 기반 Key 생성
-                SecretKey secretKey = generateKey(AESKey, salt);
+                SecretKey secretKey = generateKey(AESKEY, salt);
 
                 // 4️⃣ AES/ECB 복호화 수행
                 Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");

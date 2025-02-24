@@ -33,7 +33,7 @@ public class Review extends Base {
     private User user;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_detail_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
+    @JoinColumn(name = "order_detail_id", foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
     private OrderDetail orderDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -2,6 +2,7 @@ package org.example.mollyapi.review.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.user.entity.User;
 
 @Entity
@@ -10,7 +11,7 @@ import org.example.mollyapi.user.entity.User;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "review_like")
-public class ReviewLike {
+public class ReviewLike extends Base {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "like_id")

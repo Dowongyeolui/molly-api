@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ReviewError implements CustomError {
 
+    NOT_FOUND_REVIEW(HttpStatus.NO_CONTENT, "리뷰를 조회할 수 없습니다."),
     NOT_ACCESS_REVIEW(HttpStatus.BAD_REQUEST, "리뷰를 작성할 수 있는 권한이 없습니다."),
     NOT_EXIST_REVIEW(HttpStatus.NO_CONTENT, "해당 상품의 리뷰가 존재하지 않습니다."),
     NOT_CHANGED(HttpStatus.NO_CONTENT, "변경된 내역이 없습니다."),

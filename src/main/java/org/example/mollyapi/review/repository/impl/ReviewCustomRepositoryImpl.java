@@ -7,11 +7,15 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.review.dto.response.MyReviewInfoDto;
 import org.example.mollyapi.review.dto.response.ReviewInfoDto;
+import org.example.mollyapi.review.dto.response.TrendingReviewResDto;
 import org.example.mollyapi.review.repository.ReviewCustomRepository;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
+import static org.example.mollyapi.product.entity.QProduct.product;
 import static org.example.mollyapi.product.entity.QProductImage.productImage;
 import static org.example.mollyapi.user.entity.QUser.user;
 import static org.example.mollyapi.review.entity.QReview.review;
@@ -87,5 +91,27 @@ public class ReviewCustomRepositoryImpl implements ReviewCustomRepository {
                             .fetchOne();
         // 리뷰가 없으면 'OPEN'을 리턴
         return reviewType != null ? reviewType : "OPEN";
+    }
+
+    @Override
+    public Optional<List<TrendingReviewResDto>> getTrendingReviewInfo() {
+        return Optional.ofNullable(jpaQueryFactory.select(
+                        Projections.constructor(TrendingReviewResDto.class,
+                                review.id,
+                                review.content,
+                                user.nickname,
+                                user.profileImage,
+                                product.id,
+                                Expressions.stringTemplate("DATE_FORMAT({0}, '%Y-%m-%d')", review.createdAt),
+                                reviewLike.count()
+                        )).from(review)
+                .innerJoin(user).on(review.user.userId.eq(user.userId))
+                .leftJoin(reviewLike).on(review.id.eq((reviewLike.review.id))
+                        .and(reviewLike.createdAt.goe(LocalDateTime.now().minusDays(7))))
+                .where(review.isDeleted.isFalse())
+                        .groupBy(review.id, user.nickname, user.profileImage, review.product.id, review.createdAt)
+                .orderBy(reviewLike.count().desc(), review.createdAt.desc())
+                .limit(18)
+                .fetch());
     }
 }
