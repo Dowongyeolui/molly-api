@@ -32,20 +32,23 @@ class AESUtilTest {
     @Test
     void testDecrypt_Success() throws Exception {
         // 원본 데이터
-        String originalData = "Hello, AES Encryption!";
+        String originalData = "010-5134-1111";
 
         // AES 암호화
-        Cipher cipher = Cipher.getInstance("AES");
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         SecretKey secretKey = new SecretKeySpec(AES_SECRET_KEY.getBytes(), "AES");
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         String encryptedData = Base64.getEncoder().encodeToString(cipher.doFinal(originalData.getBytes()));
+        System.out.println(encryptedData);
+
 
         // 복호화 수행
         String decryptedData = AESUtil.decrypt(encryptedData);
+        System.out.println("hihi" + AESUtil.decryptWithSalt("U2FsdGVkX1/gSGVDRJeUW/pUpxm77bCPVgIouTLaFtw="));
 
         // 결과 검증
         assertEquals(originalData, decryptedData);
-        System.out.println("originalData: " + originalData + "\ndecryptedData: " + decryptedData);
+        System.out.println("originalData: " + originalData + "\nencryptedData: " + encryptedData + "\ndecryptedData: " + decryptedData);
     }
 
     @Test
