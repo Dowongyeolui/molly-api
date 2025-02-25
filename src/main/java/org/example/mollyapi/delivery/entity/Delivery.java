@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.delivery.type.DeliveryStatus;
 import org.example.mollyapi.order.entity.Order;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Setter
@@ -38,8 +40,9 @@ public class Delivery {
     @Column(nullable = false)
     private String addrDetail;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "FK_DELIVERY_ORDER"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Order order; // 주문 정보와 1:1 매핑
 
     public static Delivery from(Order order, String receiverName, String receiverPhone, String roadAddress, String numberAddress, String addrDetail) {

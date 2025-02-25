@@ -12,12 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.order.dto.OrderCreateRequestDto;
 import org.example.mollyapi.order.dto.OrderHistoryResponseDto;
+import org.example.mollyapi.order.dto.OrderRequestDto;
 import org.example.mollyapi.order.dto.OrderResponseDto;
 import org.example.mollyapi.order.service.OrderService;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -28,9 +31,14 @@ public class OrderController {
 
     @Auth
     @PostMapping(produces = "application/json")
-    public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody OrderCreateRequestDto request, HttpServletRequest httpRequest) {
+    public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody List<Long> cartIds, HttpServletRequest httpRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
-        OrderResponseDto response = orderService.createOrder(userId, request.getOrderRequests());
+
+        List<OrderRequestDto> orderRequests = cartIds.stream()
+                .map(cartId -> new OrderRequestDto(cartId, null, null)) // itemId와 quantity는 null
+                .toList();
+
+        OrderResponseDto response = orderService.createOrder(userId, orderRequests);
         return ResponseEntity.ok(response);
     }
 

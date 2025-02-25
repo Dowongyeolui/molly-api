@@ -11,6 +11,8 @@ import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.payment.type.PaymentStatus;
 import org.example.mollyapi.user.entity.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -49,8 +51,9 @@ public class Payment extends Base {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "FK_PAYMENT_ORDER"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
