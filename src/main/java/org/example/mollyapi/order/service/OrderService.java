@@ -117,7 +117,7 @@ public class OrderService {
             Long itemId;
             Long quantity;
 
-            // 장바구니 -> 주문일 경우. cartId를 받아서 DB에서 itemId, quantity 가져옴
+            // 장바구니에서 주문할 경우
             if (req.getCartId() != null) {
                 Cart cart = cartRepository.findById(req.getCartId())
                         .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다. cartId=" + req.getCartId()));
@@ -125,7 +125,7 @@ public class OrderService {
                 itemId = cart.getProductItem().getId();
                 quantity = cart.getQuantity();
             } else {
-                // 상품 페이지에서의 바로 주문일 경우. cartId없이 itemId와 quantity 직접 사용
+                // 바로 주문할 경우
                 itemId = req.getItemId();
                 quantity = req.getQuantity();
             }

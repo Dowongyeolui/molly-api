@@ -30,14 +30,10 @@ public class OrderController {
     private final OrderService orderService;
 
     @Auth
-    @PostMapping(produces = "application/json")
-    public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody List<Long> cartIds, HttpServletRequest httpRequest) {
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<OrderResponseDto> createOrder(
+            @Valid @RequestBody List<OrderRequestDto> orderRequests, HttpServletRequest httpRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
-
-        List<OrderRequestDto> orderRequests = cartIds.stream()
-                .map(cartId -> new OrderRequestDto(cartId, null, null)) // itemId와 quantity는 null
-                .toList();
-
         OrderResponseDto response = orderService.createOrder(userId, orderRequests);
         return ResponseEntity.ok(response);
     }
