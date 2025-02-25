@@ -10,10 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
-import org.example.mollyapi.order.dto.OrderCreateRequestDto;
-import org.example.mollyapi.order.dto.OrderHistoryResponseDto;
-import org.example.mollyapi.order.dto.OrderRequestDto;
-import org.example.mollyapi.order.dto.OrderResponseDto;
+import org.example.mollyapi.order.dto.*;
 import org.example.mollyapi.order.service.OrderService;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.MediaType;
@@ -30,10 +27,30 @@ public class OrderController {
     private final OrderService orderService;
 
     @Auth
-    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(produces = "application/json")
     public ResponseEntity<OrderResponseDto> createOrder(
-            @Valid @RequestBody List<OrderRequestDto> orderRequests, HttpServletRequest httpRequest) {
+            @Valid @RequestBody OrderRequestWrapper orderRequestWrapper,
+            HttpServletRequest httpRequest) {
+
         Long userId = (Long) httpRequest.getAttribute("userId");
+
+        List<OrderRequestDto> orderRequests;
+
+        // 장바구니 주문
+        if (orderRequestWrapper.getCartOrderRequests() != null && !orderRequestWrapper.getCartOrderRequests().isEmpty()) {
+            orderRequests = orderRequestWrapper.getCartOrderRequests().stream()
+                    .map(cart -> new OrderRequestDto(cart.getCartId(), null, null))
+                    .toList();
+        }
+        // 바로 주문(단일 객체)
+        else if (orderRequestWrapper.getDirectOrderRequest() != null) {
+            DirectOrderRequestDto directOrder = orderRequestWrapper.getDirectOrderRequest();
+            orderRequests = List.of(new OrderRequestDto(null, directOrder.getItemId(), directOrder.getQuantity()));
+        }
+        else {
+            throw new IllegalArgumentException("장바구니 주문(cartOrderRequests) 또는 바로 주문(directOrderRequest) 중 하나는 반드시 포함해야 합니다.");
+        }
+
         OrderResponseDto response = orderService.createOrder(userId, orderRequests);
         return ResponseEntity.ok(response);
     }
