@@ -38,11 +38,10 @@ public class AddressService {
     public AddressResponseDto addAddress(Long userId, String recipient, String recipientCellPhone, String roadAddress, String numberAddress, String addrDetail, boolean defaultAddr) {
         User user = getUserById(userId);
 
+        // 기본 주소로 설정하는 경우 기존 기본 주소 해제
         if (defaultAddr) {
-            Optional<Address> findByUserAndDefaultAddr = addressRepository.findByUserAndDefaultAddr(user, defaultAddr);
-            if (findByUserAndDefaultAddr.isEmpty()) {
-                throw new IllegalArgumentException("기본 배송지는 한개만 등록 가능합니다.");
-            }
+            addressRepository.findByUserAndDefaultAddr(user, true)
+                    .ifPresent(existingDefault -> existingDefault.updateDefaultAddr(false));
         }
 
         Address address = Address.builder()
@@ -65,6 +64,11 @@ public class AddressService {
         User user = getUserById(userId);
         Address newDefaultAddress = getAddressById(addressId, user);
 
+        if (newDefaultAddress.getDefaultAddr()) {
+            log.info("이미 기본 주소로 설정된 주소입니다. addressId={}", addressId);
+            return AddressResponseDto.from(newDefaultAddress);
+        }
+
         // 기존 기본 주소 찾아서 일반 주소로 변경
         addressRepository.findByUserAndDefaultAddr(user, true)
                 .ifPresent(existingDefault -> existingDefault.updateDefaultAddr(false));
@@ -78,9 +82,14 @@ public class AddressService {
 
     // 주소 수정
     public AddressResponseDto updateAddress(Long userId, Long addressId, String recipient, String recipientCellPhone, String roadAddress, String numberAddress, String addrDetail, boolean defaultAddr) {
-        log.info("userId = {}", userId);
         User user = getUserById(userId);
         Address address = getAddressById(addressId, user);
+
+        // 기본 주소 변경을 요청한 경우, 기존 기본 주소 해제 후 새 주소를 기본 주소로 설정
+        if (defaultAddr && !address.getDefaultAddr()) {
+            addressRepository.findByUserAndDefaultAddr(user, true)
+                    .ifPresent(existingDefault -> existingDefault.updateDefaultAddr(false));
+        }
 
         address.updateAddress(recipient, recipientCellPhone, roadAddress, numberAddress, addrDetail);
         address.updateDefaultAddr(defaultAddr);
@@ -94,28 +103,21 @@ public class AddressService {
         User user = getUserById(userId);
         Address address = getAddressById(addressId, user);
 
-        try {
-            if (address.getDefaultAddr()) {
-                log.error("기본 주소 삭제 불가. addressId: {}", addressId);
-                throw new CustomException(AddressError.ADDRESS_DELETE_NOT_ALLOWED);
-            }
-
-            addressRepository.delete(address);
-            log.info("주소 삭제 완료. addressId: {}", addressId);
-        } catch (CustomException e) {
-            log.error("주소 삭제 실패. {}", e.getMessage());
-            throw e;
+        if (address.getDefaultAddr()) {
+            log.error("기본 주소 삭제 불가. addressId: {}", addressId);
+            throw new CustomException(AddressError.ADDRESS_DELETE_NOT_ALLOWED);
         }
+
+        addressRepository.delete(address);
+        log.info("주소 삭제 완료. addressId: {}", addressId);
     }
 
     private User getUserById(Long userId) {
-        log.info("userId = {}", userId);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));
     }
 
     private Address getAddressById(Long addressId, User user) {
-        log.info("addressId = {}, user ={}", addressId, user.getUserId());
         return addressRepository.findById(addressId)
                 .filter(address -> address.getUser().equals(user))
                 .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));

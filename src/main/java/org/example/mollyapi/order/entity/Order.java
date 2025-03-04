@@ -5,7 +5,11 @@ import lombok.*;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
+import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.user.entity.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,9 +36,15 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "delivery_id") // FK 설정
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "delivery_id", foreignKey = @ForeignKey(name = "FK_DELIVERY_ORDER"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Delivery delivery;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Payment> payments;
+
 
     @Column(nullable = false)
     private Long totalAmount; // 포인트 적용 전 금액

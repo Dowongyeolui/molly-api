@@ -98,7 +98,7 @@ public class PaymentServiceImpl implements PaymentService {
         Long orderAmount = order.getTotalAmount();
 
         // 포인트 decode 후 정수 변환
-        Integer pointUsage = Integer.parseInt(AESUtil.decrypt(point));
+        Integer pointUsage = Integer.parseInt(AESUtil.decryptWithSalt(point));
 
         // 유저 포인트 검증
         validateUserPoint(userId, pointUsage);
@@ -352,11 +352,11 @@ public class PaymentServiceImpl implements PaymentService {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode deliveryInfo = objectMapper.readTree(deliveryInfoJson);
 
-            String receiverName = AESUtil.decrypt(deliveryInfo.get("receiver_name").asText());
-            String receiverPhone = AESUtil.decrypt(deliveryInfo.get("receiver_phone").asText());
-            String roadAddress = AESUtil.decrypt(deliveryInfo.get("road_address").asText());
-            String numberAddress = AESUtil.decrypt(deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null);
-            String addrDetail = AESUtil.decrypt(deliveryInfo.get("addr_detail").asText());
+            String receiverName = AESUtil.decryptWithSalt(deliveryInfo.get("receiver_name").asText());
+            String receiverPhone = AESUtil.decryptWithSalt(deliveryInfo.get("receiver_phone").asText());
+            String roadAddress = AESUtil.decryptWithSalt(deliveryInfo.get("road_address").asText());
+            String numberAddress = AESUtil.decryptWithSalt(deliveryInfo.has("number_address") ? deliveryInfo.get("number_address").asText() : null);
+            String addrDetail = AESUtil.decryptWithSalt(deliveryInfo.get("addr_detail").asText());
 
             // 배송 정보 생성
             Delivery delivery = Delivery.from(order, receiverName, receiverPhone, roadAddress, numberAddress, addrDetail);

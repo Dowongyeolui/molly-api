@@ -6,6 +6,8 @@ import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.order.entity.OrderDetail;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.user.entity.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,12 +30,15 @@ public class Review extends Base {
     @Column(name = "is_deleted", columnDefinition = "TINYINT(1) DEFAULT 0")
     private Boolean isDeleted; //삭제 여부. 0: False, 1: True
 
+    private Long count; //리뷰 누적 좋아요
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_USER"))
     private User user;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_detail_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "order_detail_id", foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
+    @OnDelete(action= OnDeleteAction.CASCADE)
     private OrderDetail orderDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)

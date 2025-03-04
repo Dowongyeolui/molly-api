@@ -51,7 +51,8 @@ public class CartService {
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_ITEM));
 
         // 3. 상품의 재고가 남아 있는 지 체크
-        if(item.getQuantity() == 0) throw new CustomException(SOLD_OUT);
+        if(item.getQuantity() == 0 || item.getQuantity() < addCartReqDto.quantity())
+            throw new CustomException(OVER_QUANTITY);
 
         // 4. 장바구니에 동일한 상품이 담겨 있는 지 체크
         Cart cart = cartRep.findByProductItemIdAndUserUserId(addCartReqDto.itemId(), userId);
@@ -82,10 +83,6 @@ public class CartService {
      * @param item 상품 정보
      */
     public void insertNewCart(AddCartReqDto addCartReqDto, User user, ProductItem item) {
-        // 재고 수량 초과 체크
-        if(item.getQuantity() < addCartReqDto.quantity())
-            throw new CustomException(OVER_QUANTITY);
-
         // 장바구니 최대 수량(30개) 미만 체크
         int count = cartRep.countByUserUserId(user.getUserId());
         if(count > 30)

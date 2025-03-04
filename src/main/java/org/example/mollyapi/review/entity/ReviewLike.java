@@ -2,7 +2,10 @@ package org.example.mollyapi.review.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.user.entity.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Builder
@@ -10,7 +13,7 @@ import org.example.mollyapi.user.entity.User;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "review_like")
-public class ReviewLike {
+public class ReviewLike extends Base {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "like_id")
@@ -23,17 +26,12 @@ public class ReviewLike {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_USER"))
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
+    @OnDelete(action= OnDeleteAction.CASCADE)
     private Review review;
 
-    public boolean updateIsLike(boolean isLike) {
-        boolean flag = false;
-        if(!this.isLike.equals(isLike)) {
-            this.isLike = isLike;
-            flag = true;
-        }
-
-        return flag;
+    public void updateIsLike(boolean isLike) {
+        this.isLike = isLike;
     }
 }

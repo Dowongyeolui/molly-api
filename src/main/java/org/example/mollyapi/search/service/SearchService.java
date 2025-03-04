@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.SearchItemResDto;
+import org.example.mollyapi.search.dto.SearchOptionReqDto;
 import org.example.mollyapi.search.entity.Search;
 import org.example.mollyapi.search.repository.SearchRepository;
 import org.springframework.stereotype.Service;
@@ -17,15 +18,17 @@ public class SearchService {
 
     private final SearchRepository searchRepository;
 
-    public SearchItemResDto searchItem(String keyword,
-                                    Long cursorId,
-                                    LocalDateTime lastCreatedAt,
-                                    int pageSize){
+    public SearchItemResDto searchItem(SearchOptionReqDto searchOptionReqDto){
 
-        Search search = searchRepository.findByKeyword(keyword)
+        int pageSize = 48;
+        if( searchOptionReqDto.pageSize() != null) {
+            pageSize = searchOptionReqDto.pageSize();
+        }
+
+        Search search = searchRepository.findByKeyword(searchOptionReqDto.keyword())
                 .orElse(
                         Search.builder()
-                                .keyword(keyword)
+                                .keyword(searchOptionReqDto.keyword())
                                 .count(0)
                                 .build()
                 );
@@ -33,7 +36,7 @@ public class SearchService {
         search.increaseCount();
         searchRepository.save(search);
 
-        return searchRepository.search(keyword, cursorId, lastCreatedAt, pageSize);
+        return searchRepository.search(searchOptionReqDto, pageSize);
     }
 
     public SearchCommonResDto searchWord(String keyword) {

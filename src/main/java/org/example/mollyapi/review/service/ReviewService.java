@@ -70,7 +70,7 @@ public class ReviewService {
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_USER));
 
         // 주문 상세 조회
-        OrderDetail orderDetail = orderDetailRep.findById(orderDetailId)
+        OrderDetail orderDetail = orderDetailRep.findByIdAndOrderUserUserId(orderDetailId, userId)
                 .orElseThrow(() -> new CustomException(NOT_EXIST_ORDERDETIAL));
 
         // 상품 정보 조회
@@ -195,7 +195,7 @@ public class ReviewService {
     }
 
     /**
-     * 리뷰 작성 기능
+     * 리뷰 수정 기능
      * @param addReviewReqDto 주문상세 PK와 내용이 담긴 DTO
      * @param uploadImages 업로드한 이미지 파일
      * @param userId 사용자 PK
@@ -214,7 +214,7 @@ public class ReviewService {
         if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
 
         // 변경하려는 리뷰 체크
-        Review review = reviewRep.findByIdAndIsDeleted(reviewId, false)
+        Review review = reviewRep.findByIdAndUserUserIdAndIsDeleted(reviewId, userId,false)
                 .orElseThrow(() -> new CustomException(NOT_ACCESS_REVIEW));
 
         // 리뷰 내용 변경

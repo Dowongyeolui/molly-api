@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.address.dto.AddressResponseDto;
 import org.example.mollyapi.address.repository.AddressRepository;
+import org.example.mollyapi.cart.entity.Cart;
+import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
 import org.example.mollyapi.delivery.type.DeliveryStatus;
@@ -46,6 +48,8 @@ public class OrderService {
     private final DeliveryRepository deliveryRepository;
     private final AddressRepository addressRepository;
     private final ReviewRepository reviewRepository;
+    private final CartRepository cartRepository;
+
 
 
     // 사용자의 주문 내역 조회 (GET /orders/{userId})
@@ -110,32 +114,48 @@ public class OrderService {
         orderRepository.save(order);
 
         List<OrderDetail> orderDetails = orderRequests.stream().map(req -> {
-            // 비관적 락을 걸어 Product 조회
-            Product product = productRepository.findWithLockById(req.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. productId=" + req.getProductId()));
+            Long itemId;
+            Long quantity;
 
-            // ProductItem을 Repository에서 직접 조회
-            ProductItem productItem = productItemRepository.findById(req.getItemId())
-                    .orElseThrow(() -> new IllegalArgumentException("상품 아이템을 찾을 수 없습니다. itemId=" + req.getItemId()));
+            // 장바구니에서 주문할 경우
+            if (req.getCartId() != null) {
+                Cart cart = cartRepository.findById(req.getCartId())
+                        .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다. cartId=" + req.getCartId()));
+
+                itemId = cart.getProductItem().getId();
+                quantity = cart.getQuantity();
+            } else {
+                // 바로 주문할 경우
+                itemId = req.getItemId();
+                quantity = req.getQuantity();
+            }
+
+            if (itemId == null || quantity == null) {
+                throw new IllegalArgumentException("주문을 생성하기 위해 필요한 정보가 부족합니다.");
+            }
+
+            // 비관적 락을 걸어 Product 조회
+            ProductItem productItem = productItemRepository.findById(itemId)
+                    .orElseThrow(() -> new IllegalArgumentException("상품 아이템을 찾을 수 없습니다. itemId=" + itemId));
 
             // 재고 체크
-            if (productItem.getQuantity() < req.getQuantity()) {
-                order.markAsFailed();  // 주문 실패 처리
-                throw new IllegalArgumentException("재고가 부족하여 주문이 불가능합니다. itemId=" + req.getItemId());
+            if (productItem.getQuantity() < quantity) {
+                order.markAsFailed();
+                throw new IllegalArgumentException("재고가 부족하여 주문이 불가능합니다. itemId=" + itemId);
             }
 
             // 재고 감소
-            productItem.decreaseStock(Math.toIntExact(req.getQuantity()));
-            productItemRepository.save(productItem);  // 감소한 재고 저장
+            productItem.decreaseStock(Math.toIntExact(quantity));
+            productItemRepository.save(productItem);
 
             return OrderDetail.builder()
                     .order(order)
                     .productItem(productItem)
                     .size(productItem.getSize())
-                    .price(product.getPrice())
-                    .quantity(req.getQuantity())
-                    .brandName(product.getBrandName())
-                    .productName(product.getProductName())
+                    .price(productItem.getProduct().getPrice())
+                    .quantity(quantity)
+                    .brandName(productItem.getProduct().getBrandName())
+                    .productName(productItem.getProduct().getProductName())
                     .cartId(req.getCartId())
                     .build();
         }).collect(Collectors.toList());
