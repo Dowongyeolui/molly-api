@@ -1,6 +1,7 @@
 package org.example.mollyapi.delivery.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.example.mollyapi.delivery.entity.Delivery;
 
 public record DeliveryReqDto(
         @Schema(description = "착신자명", example = "momo")
@@ -14,4 +15,14 @@ public record DeliveryReqDto(
         @Schema(description = "배송 세부사항", example = "배송 조심히 해주세요")
         String addr_detail
 ) {
+        // Delivery 엔티티를 기반으로 DeliveryReqDto를 생성하는 정적 메서드 추가
+        public static DeliveryReqDto from(Delivery delivery) {
+                return new DeliveryReqDto(
+                        delivery.getReceiverName(),
+                        delivery.getReceiverPhone(),
+                        delivery.getRoadAddress(),
+                        delivery.getNumberAddress(),
+                        delivery.getAddrDetail()
+                );
+        }
 }

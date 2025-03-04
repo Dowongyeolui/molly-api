@@ -1,35 +1,32 @@
 package org.example.mollyapi.order.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.mollyapi.order.entity.OrderDetail;
 
-@Getter
-@Builder
-public class OrderDetailResponseDto {
-    private Long orderId;
-    private Long productId;
-    private Long itemId;
-    private String brandName;
-    private String productName;
-    private String size;
-    private Long price;
-    private Long quantity;
-    private String image;
-    private String color;
-
+public record OrderDetailResponseDto(
+        @JsonProperty("orderId") Long orderId,
+        @JsonProperty("productId") Long productId,
+        @JsonProperty("itemId") Long itemId,
+        @JsonProperty("brandName") String brandName,
+        @JsonProperty("productName") String productName,
+        @JsonProperty("size") String size,
+        @JsonProperty("price") Long price,
+        @JsonProperty("quantity") Long quantity,
+        @JsonProperty("image") String image,
+        @JsonProperty("color") String color
+) {
     public static OrderDetailResponseDto from(OrderDetail orderDetail) {
-        return OrderDetailResponseDto.builder()
-                .orderId(orderDetail.getOrder().getId())
-                .productId(orderDetail.getProductItem().getProduct().getId())
-                .itemId(orderDetail.getProductItem().getId())
-                .brandName(orderDetail.getBrandName())
-                .productName(orderDetail.getProductItem().getProduct().getProductName())
-                .size(orderDetail.getProductItem().getSize())
-                .price(orderDetail.getPrice())
-                .quantity(orderDetail.getQuantity())
-                .image(orderDetail.getProductItem().getProduct().getThumbnail().getStoredFileName())
-                .color(orderDetail.getProductItem().getColor())
-                .build();
+        return new OrderDetailResponseDto(
+                orderDetail.getOrder().getId(),
+                orderDetail.getProductItem().getProduct().getId(),
+                orderDetail.getProductItem().getId(),
+                orderDetail.getBrandName(),
+                orderDetail.getProductItem().getProduct().getProductName(),
+                orderDetail.getProductItem().getSize(),
+                orderDetail.getPrice(),
+                orderDetail.getQuantity(),
+                orderDetail.getProductItem().getProduct().getThumbnail().getStoredFileName(),
+                orderDetail.getProductItem().getColor()
+        );
     }
 }

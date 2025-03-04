@@ -5,13 +5,13 @@ import org.example.mollyapi.delivery.entity.Delivery;
 
 @Getter
 public class DeliveryResponseDto {
-    private Long deliveryId;
-    private String addrDetail;
-    private String numberAddress;
-    private String receiverName;
-    private String receiverPhone;
-    private String roadAddress;
-    private String status;
+    private final Long deliveryId;
+    private final String addrDetail;
+    private final String numberAddress;
+    private final String receiverName;
+    private final String receiverPhone;
+    private final String roadAddress;
+    private final String status;
 
     public static DeliveryResponseDto from(Delivery delivery) {
         return new DeliveryResponseDto(delivery);

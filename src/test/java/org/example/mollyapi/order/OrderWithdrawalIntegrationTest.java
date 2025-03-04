@@ -5,7 +5,7 @@ import org.example.mollyapi.delivery.repository.DeliveryRepository;
 import org.example.mollyapi.delivery.type.DeliveryStatus;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
-import org.example.mollyapi.order.service.OrderService;
+import org.example.mollyapi.order.service.OrderServiceImpl;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.user.entity.User;
@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class OrderWithdrawalIntegrationTest {
 
     @Autowired
-    private OrderService orderService;
+    private OrderServiceImpl orderServiceImpl;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -48,7 +48,7 @@ public class OrderWithdrawalIntegrationTest {
         Long expectedRefundedPoint = order56.getPointUsage() + order56.getPaymentAmount();
 
         // when - 주문 철회 실행
-        orderService.withdrawOrder(56L);
+        orderServiceImpl.withdrawOrder(56L);
 
         // then - 주문 철회가 정상적으로 이루어졌는지 검증
         assertThat(order56.getCancelStatus()).isEqualTo(CancelStatus.COMPLETED);
@@ -83,7 +83,7 @@ public class OrderWithdrawalIntegrationTest {
         Long expectedRefundedPoint = pointUsage + paymentAmount - pointSave;
 
         // when - 주문 철회 실행
-        orderService.withdrawOrder(57L);
+        orderServiceImpl.withdrawOrder(57L);
 
         // then - 주문 철회가 정상적으로 이루어졌는지 검증
         assertThat(order57.getCancelStatus()).isEqualTo(CancelStatus.COMPLETED);

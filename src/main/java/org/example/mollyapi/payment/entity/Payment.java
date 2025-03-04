@@ -11,8 +11,6 @@ import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.payment.type.PaymentStatus;
 import org.example.mollyapi.user.entity.User;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -51,59 +49,55 @@ public class Payment extends Base {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "FK_PAYMENT_ORDER"))
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private int retryCount = 0;  // 결제 재시도 횟수
+
+    private static final int MAX_RETRY = 3;  // 최대 재시도 횟수
+
+    public boolean canRetry() {
+        return this.retryCount < MAX_RETRY;
+    }
+
+    public boolean increaseRetryCount() {
+        if (this.retryCount >= MAX_RETRY) {
+            return false; // 재시도 불가능
+        }
+        this.retryCount++;
+        return true; // 재시도 가능
+    }
 
     // 생성자 팩토리 메서드
-    public static Payment from(User user, Order order, String tossOrderId, String paymentKey, String paymentType, Long amount, String paymentStatus) {
+    public static Payment create(User user, String tossOrderId,
+                                 String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
         return Payment.builder()
                 .user(user)
-                .order(order)
                 .tossOrderId(tossOrderId)
                 .paymentKey(paymentKey)
                 .paymentType(paymentType)
                 .amount(amount)
-                .paymentStatus(PaymentStatus.from(paymentStatus))
+                .paymentStatus(paymentStatus)
+                .paymentDate(LocalDateTime.now())
                 .build();
     }
 
-//    public static Payment ready(Long userId,String tossOrderId, Integer amount) {
-//        return Payment.builder()
-//                .userId(userId)
-//                .tossOrderId(tossOrderId)
-//                .amount(amount)
-//                .paymentStatus(PaymentStatus.PENDING)
-//                .build();
-//    }
-
-
-
-
-
-    // 결제 성공 시 필드 추가 도메인 로직
-    public void successPayment(Integer point) {
+    public boolean failPayment(String failureReason) {
         if (this.paymentStatus != PaymentStatus.PENDING) {
             throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
         }
-        this.point = point;
-        this.paymentStatus = PaymentStatus.APPROVED;
-        this.paymentDate = LocalDateTime.now();
-    }
-
-//
-    public void failPayment(String failureReason) {
-        if (this.paymentStatus != PaymentStatus.PENDING) {
-            throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
+        if (!increaseRetryCount()) {
+            throw new CustomException(PaymentError.PAYMENT_RETRY_EXCEEDED);
         }
         this.paymentStatus = PaymentStatus.FAILED;
         this.failureReason = failureReason;
+        return true;
     }
 
     public void cancelPayment() {
@@ -113,8 +107,12 @@ public class Payment extends Base {
         this.paymentStatus = PaymentStatus.CANCELED;
     }
 
+    public void updatePaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
 
-
-
+    public PaymentStatus getStatus() {
+        return this.paymentStatus;
+    }
 
 }

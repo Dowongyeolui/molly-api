@@ -21,4 +21,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<List<Payment>> findAllByUserId(@Param("userId") Long userId);
 
     Optional<List<Payment>> findAllByOrderByCreatedAtDesc();
+
+    @Query("SELECT p FROM Payment p WHERE p.tossOrderId = :tossOrderId AND p.user.id = :userId")
+    Optional<Payment> findByTossOrderIdAndUserId(@Param("tossOrderId") String tossOrderId, @Param("userId") Long userId);
 }
