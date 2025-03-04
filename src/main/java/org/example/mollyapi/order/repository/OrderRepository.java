@@ -12,16 +12,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    Optional<Order> findById(Long orderId);
     Optional<Order> findByTossOrderId(String tossOrderId);
-
-    @Query("SELECT COUNT(od) FROM OrderDetail od WHERE od.order.tossOrderId = :tossOrderId")
-    int countOrderDetailsByTossOrderId(@Param("tossOrderId") String tossOrderId);
+    List<Order> findByUserAndStatusIn(@Param("user") User user, @Param("statuses") List<OrderStatus> statuses);
 
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.status IN (:statuses)")
     List<Order> findOrdersByUserAndStatusIn(@Param("user") User user, @Param("statuses") List<OrderStatus> statuses);
 
+    default Order findOrderById(Long orderId) {
+        return findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. orderId=" + orderId));
+    }
+
     @Query("SELECT o FROM Order o WHERE o.expirationTime < :now AND o.status = 'PENDING'")
     List<Order> findExpiredPendingOrders(@Param("now") LocalDateTime now);
-
 }

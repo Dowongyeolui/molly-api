@@ -34,9 +34,10 @@ public class Review extends Base {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_USER"))
     private User user;
 
+    // 수정 필
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "order_detail_id", foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
-    @OnDelete(action= OnDeleteAction.CASCADE)
+    @OnDelete(action= OnDeleteAction.CASCADE) // @OnDelete(action=OnDeleteAction,SET_NULL) OrderDetail<->Review 서로가 삭제되도 cascade가 없게
     private OrderDetail orderDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)

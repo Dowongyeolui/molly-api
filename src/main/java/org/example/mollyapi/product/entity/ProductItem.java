@@ -54,7 +54,7 @@ public class ProductItem extends Base {
 
 
 
-        public void decreaseStock(int quantityToDecrease) {
+        public void decreaseStock(Long quantityToDecrease) {
                 if (this.quantity < quantityToDecrease) {
                         throw new IllegalArgumentException("재고 부족: 현재 수량=" + this.quantity + ", 요청 수량=" + quantityToDecrease);
                 }
