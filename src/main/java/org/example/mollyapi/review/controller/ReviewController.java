@@ -17,7 +17,6 @@ import org.example.mollyapi.review.dto.response.GetReviewResDto;
 import org.example.mollyapi.review.service.ReviewService;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +35,7 @@ public class ReviewController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "리뷰내역 작성 API", description = "배송완료된 상품의 리뷰를 작성할 수 있습니다. id = order_detail_id")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "리뷰 등록 성공",
+            @ApiResponse(responseCode = "200", description = "리뷰 등록 성공",
                     content = @Content(schema = @Schema(implementation = CommonResDto.class))),
             @ApiResponse(responseCode = "400", description = "1. 존재 하지 않는 사용자 \t\n 2. 주문 상세 조회 불가",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
@@ -46,9 +45,7 @@ public class ReviewController {
             @RequestPart(value = "reviewImages", required = false) List<MultipartFile> uploadImages,
             HttpServletRequest request){
         Long userId = (Long) request.getAttribute("userId");
-        reviewService.registerReview(addReviewReqDto, uploadImages, userId);
-        return ResponseEntity.status(HttpStatusCode.valueOf(204)).body(
-                new CommonResDto("리뷰 등록에 성공했습니다."));
+        return reviewService.registerReview(addReviewReqDto, uploadImages, userId);
     }
 
     @Auth
@@ -128,13 +125,11 @@ public class ReviewController {
             @RequestPart(value = "reviewImages", required = false) List<MultipartFile> uploadImages,
             HttpServletRequest request){
         Long userId = (Long) request.getAttribute("userId");
-        reviewService.updateReview(addReviewReqDto, uploadImages, userId);
-        return ResponseEntity.status(HttpStatusCode.valueOf(204)).body(
-                new CommonResDto("리뷰 수정에 성공했습니다."));
+        return reviewService.updateReview(addReviewReqDto, uploadImages, userId);
     }
 
     @Auth
-    @PostMapping("/{reviewId}")
+    @DeleteMapping("/{reviewId}")
     @Operation(summary = "리뷰 삭제 API", description = "자신이 작성한 리뷰 내역을 삭제할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "리뷰 삭제 성공",

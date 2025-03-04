@@ -8,6 +8,7 @@ import org.example.mollyapi.cart.dto.Request.UpdateCartReqDto;
 import org.example.mollyapi.cart.dto.Response.CartInfoResDto;
 import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.cart.repository.CartRepository;
+import org.example.mollyapi.common.dto.CommonResDto;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.product.dto.response.ColorDetailDto;
 import org.example.mollyapi.product.entity.ProductItem;
@@ -39,6 +40,7 @@ public class CartService {
      * 장바구니에 상품 담기 기능
      * @param addCartReqDto 추가하려는 데이터
      * @param userId 사용자 PK
+     * @return StatusCode & Message
      */
     @Transactional
     public ResponseEntity<?> addCart(AddCartReqDto addCartReqDto, Long userId) {
@@ -47,8 +49,7 @@ public class CartService {
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_USER));
 
         // 2. 상품 존재 여부 체크
-        ProductItem item = productItemRep.findById(addCartReqDto.itemId())
-                .orElseThrow(() -> new CustomException(NOT_EXISTS_ITEM));
+        ProductItem item = getProductItemInfo(addCartReqDto.itemId());
 
         // 3. 상품의 재고가 남아 있는 지 체크
         if(item.getQuantity() == 0 || item.getQuantity() < addCartReqDto.quantity())
@@ -73,7 +74,7 @@ public class CartService {
             }
         }
 
-        return ResponseEntity.ok().body("장바구니 등록에 성공했습니다.");
+        return ResponseEntity.ok(new CommonResDto("장바구니 등록에 성공했습니다."));
     }
 
     /**
@@ -85,8 +86,7 @@ public class CartService {
     public void insertNewCart(AddCartReqDto addCartReqDto, User user, ProductItem item) {
         // 장바구니 최대 수량(30개) 미만 체크
         int count = cartRep.countByUserUserId(user.getUserId());
-        if(count > 30)
-            throw new CustomException(MAX_CART);
+        if(count > 30) throw new CustomException(MAX_CART);
 
         // 새로운 Cart 엔티티 생성
         Cart newCart = Cart.builder()
@@ -102,10 +102,10 @@ public class CartService {
      * 장바구니 조회 기능
      * @param userId 사용자 PK
      * */
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getCartDetail(Long userId) {
         // 1. 가입된 사용자 여부 체크
-        boolean exists = userRep.existsById(userId);
-        if(!exists) throw new CustomException(NOT_EXISTS_USER);
+        getUserInfo(userId);
 
         // 2. 사용자 장바구니 조회
         List<CartInfoDto> cartInfoList = cartRep.getCartInfo(userId);
@@ -132,18 +132,15 @@ public class CartService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void updateItemOption(UpdateCartReqDto updateCartReqDto, Long userId) {
+    public ResponseEntity<?> updateItemOption(UpdateCartReqDto updateCartReqDto, Long userId) {
         // 1. 가입된 사용자 여부 체크
-        boolean existsUser = userRep.existsById(userId);
-        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
+        getUserInfo(userId);
 
         // 2. 해당 장바구니 내역 여부 체크
-        Cart cart = cartRep.findByCartIdAndUserUserId(updateCartReqDto.cartId(), userId)
-                .orElseThrow(() -> new CustomException(NOT_EXIST_CART));
+        Cart cart = getCartInfo(updateCartReqDto.cartId(), userId);
 
         // 3. 변경하려는 아이템 여부 체크
-        ProductItem item = productItemRep.findById(updateCartReqDto.itemId())
-                .orElseThrow(() -> new CustomException(NOT_EXISTS_ITEM));
+        ProductItem item = getProductItemInfo(updateCartReqDto.itemId());
 
         // 4. 변경 사항 체크
         boolean isUpdate = cart.updateCart(item, updateCartReqDto.quantity());
@@ -152,6 +149,8 @@ public class CartService {
         // 5. 재고가 부족할 경우
         if(item.getQuantity() < updateCartReqDto.quantity())
             throw new CustomException(OVER_QUANTITY);
+
+        return ResponseEntity.ok(new CommonResDto("옵션 변경에 성공했습니다."));
     }
 
     /**
@@ -160,21 +159,45 @@ public class CartService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void deleteCartItem(List<Long> cartList, Long userId) {
+    public ResponseEntity<?> deleteCartItem(List<Long> cartList, Long userId) {
         // 1. 가입된 사용자 여부 체크
-        boolean existsUser = userRep.existsById(userId);
-        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
+        getUserInfo(userId);
 
         // 2. 리스트에 담긴 cartId 순서대로 삭제
         for (Long cartId : cartList) {
-            try {
-                boolean existsCart = cartRep.existsByCartIdAndUserUserId(cartId, userId);
-                if(!existsCart) throw new CustomException(NOT_EXIST_CART);
-
-                cartRep.deleteByCartIdAndUserUserId(cartId, userId);
-            } catch (CustomException e) {
-                throw new CustomException(FAIL_DELETE);
-            }
+            cartRep.delete(getCartInfo(cartId, userId));
         }
+
+        return ResponseEntity.ok(new CommonResDto("장바구니 내역 삭제에 성공했습니다."));
+    }
+
+    /**
+     * 가입된 사용자 여부 체크
+     * @param userId 사용자 PK
+     * */
+    public void getUserInfo(Long userId) {
+        boolean existsUser = userRep.existsById(userId);
+        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
+    }
+
+    /**
+     * 상품 아이템 정보 조회
+     * @param itemId 상품 아이템 Pk
+     * @return ProductItem entity
+     * */
+    public ProductItem getProductItemInfo(Long itemId) {
+        return productItemRep.findById(itemId)
+                .orElseThrow(() -> new CustomException(NOT_EXISTS_ITEM));
+    }
+
+    /**
+     * 해당 장바구니 정보 조회
+     * @param cartId 장바구니 PK
+     * @param userId 사용자 PK
+     * @return Cart entity
+     * */
+    public Cart getCartInfo(Long cartId, Long userId) {
+        return cartRep.findByCartIdAndUserUserId(cartId, userId)
+                .orElseThrow(() -> new CustomException(NOT_EXIST_CART));
     }
 }

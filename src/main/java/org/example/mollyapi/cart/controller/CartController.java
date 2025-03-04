@@ -66,7 +66,7 @@ public class CartController {
     @PutMapping()
     @Operation(summary = "장바구니 상품 수정 API", description = "장바구니에 담긴 상품의 옵션을 수정할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),
+            @ApiResponse(responseCode = "200", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),
             @ApiResponse(responseCode = "400", description = "1. 존재하지 않는 사용자 \t\n 2. 요청이 잘못된 경우 \t\n 3. 존재하지 않는 상품 \t\n 4. 준비된 재고 초과",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
@@ -74,15 +74,14 @@ public class CartController {
             @Valid @RequestBody UpdateCartReqDto updateCartReqDto,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        cartService.updateItemOption(updateCartReqDto, userId);
-        return ResponseEntity.noContent().build();
+        return cartService.updateItemOption(updateCartReqDto, userId);
     }
 
     @Auth
     @DeleteMapping()
     @Operation(summary = "장바구니 상품 삭제", description = "장바구니에 담긴 상품을 삭제할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "장바구니 내역 삭제 성공",
+            @ApiResponse(responseCode = "200", description = "장바구니 내역 삭제 성공",
                     content = @Content(schema = @Schema(implementation = CommonResDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 삭제 요청",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class))),
@@ -93,7 +92,6 @@ public class CartController {
             @Valid @RequestBody List<Long> cartList,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        cartService.deleteCartItem(cartList, userId);
-        return ResponseEntity.noContent().build();
+        return cartService.deleteCartItem(cartList, userId);
     }
 }

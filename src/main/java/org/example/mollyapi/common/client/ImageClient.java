@@ -11,4 +11,5 @@ public interface ImageClient {
 
     Optional<UploadFile> upload(ImageType type, MultipartFile file);
     List<UploadFile> upload(ImageType type, List<MultipartFile> files);
+    void delete(ImageType type, String url);
 }

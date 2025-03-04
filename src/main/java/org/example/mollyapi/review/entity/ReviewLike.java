@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.user.entity.User;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Builder
@@ -19,16 +17,15 @@ public class ReviewLike extends Base {
     @Column(name = "like_id")
     private Long id; //좋아요 PK
 
-    @Column(name = "is_like", columnDefinition = "TINYINT(1) DEFAULT 1")
+    @Column(name = "is_like", columnDefinition = "BIT DEFAULT TRUE")
     private Boolean isLike; //좋아요 여부. 0: False, 1: True
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_USER"))
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
-    @OnDelete(action= OnDeleteAction.CASCADE)
     private Review review;
 
     public void updateIsLike(boolean isLike) {

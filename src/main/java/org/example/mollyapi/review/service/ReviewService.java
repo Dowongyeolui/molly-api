@@ -2,6 +2,7 @@ package org.example.mollyapi.review.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.client.ImageClient;
+import org.example.mollyapi.common.dto.CommonResDto;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.order.entity.OrderDetail;
 import org.example.mollyapi.order.repository.OrderDetailRepository;
@@ -57,7 +58,7 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void registerReview(
+    public ResponseEntity<?> registerReview(
             AddReviewReqDto addReviewReqDto, // Long orderDetailId, String content
             List<MultipartFile> uploadImages,
             Long userId
@@ -94,6 +95,8 @@ public class ReviewService {
         saveReviewImages(newReview, uploadImages);
 
         reviewRep.save(newReview);
+
+        return ResponseEntity.ok(new CommonResDto("리뷰 등록에 성공했습니다."));
     }
 
     /**
@@ -103,7 +106,7 @@ public class ReviewService {
      * @param userId 사용자 PK
      * @return reviewResDtoList 리뷰 정보를 담은 DtoList
      * */
-    @Transactional
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getReviewList(Pageable pageable, Long productId, Long userId) {
         // 상품 존재 여부 체크
         boolean existsProduct = productRep.existsById(productId);
@@ -152,10 +155,10 @@ public class ReviewService {
      * @param userId 사용자 PK
      * @return myReviewResDtoList 사용자 본인이 작성한 리뷰 정보를 담은 DtoList
      * */
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getMyReviewList(Pageable pageable, Long userId) {
         // 가입된 사용자 여부 체크
-        boolean existsUser = userRep.existsById(userId);
-        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
+        getUserInfo(userId);
 
         // 사용자 본인이 작성한 리뷰 정보 조회
         List<MyReviewInfoDto> myReviewInfoList = reviewRep.getMyReviewInfo(pageable, userId);
@@ -201,7 +204,7 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void updateReview(
+    public ResponseEntity<?> updateReview(
             AddReviewReqDto addReviewReqDto, // Long reviewId, String content
             List<MultipartFile> uploadImages,
             Long userId
@@ -210,25 +213,31 @@ public class ReviewService {
         String content = addReviewReqDto.content();
 
         // 가입된 사용자 여부 체크
-        boolean existsUser = userRep.existsById(userId);
-        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
+        getUserInfo(userId);
 
         // 변경하려는 리뷰 체크
         Review review = reviewRep.findByIdAndUserUserIdAndIsDeleted(reviewId, userId,false)
                 .orElseThrow(() -> new CustomException(NOT_ACCESS_REVIEW));
 
-        // 리뷰 내용 변경
-        if(content != null) review.updateContent(content);
+        boolean flag = false; //변경 여부 체크 변수
 
-        // 리뷰 이미지 변경 여부 체크
-        if(uploadImages != null) {
-            // 기존의 리뷰 이미지 삭제
-            // 추가 예정
-
-            // 리뷰에 새로운 이미지 추가
-            saveReviewImages(review, uploadImages);
-            reviewRep.save(review);
+        // 리뷰 내용 변경 요청이 들어 왔을 떄
+        if(content != null) {
+            review.updateContent(content);
+            flag = true;
         }
+
+        // 리뷰 이미지 변경 요청이 들어 왔을 떄
+        if(uploadImages != null) {
+            deleteReviewImage(reviewId); // 리뷰 이미지 삭제
+            reviewImageRep.flush(); //duplicate entry 방지
+            saveReviewImages(review, uploadImages);  // 리뷰에 새로운 이미지 추가
+            flag = true;
+        }
+
+        if(!flag) throw new CustomException(NOT_CHANGED);
+
+        return ResponseEntity.ok(new CommonResDto("리뷰 수정에 성공했습니다."));
     }
 
     /**
@@ -238,6 +247,9 @@ public class ReviewService {
      * */
     @Transactional
     public ResponseEntity<?> deleteReview(Long reviewId, Long userId) {
+        // 가입된 사용자 여부 체크
+        getUserInfo(userId);
+
         // 해당하는 리뷰가 있다면
         Review review = reviewRep.findByIdAndUserUserId(reviewId, userId)
                 .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
@@ -246,14 +258,13 @@ public class ReviewService {
         boolean isUpdate = review.updateIsDeleted(Boolean.TRUE);
         if(!isUpdate) throw new CustomException(FAIL_UPDATE);
 
-        // 리뷰와 연결된 이미지 삭제 - 이미지 서버(구현 예정)
-        // 리뷰와 연결된 이미지 삭제 - 테이블
-        // reviewImageRep.deleteAllByReviewId(reviewId);
+        // 리뷰 이미지 삭제
+        deleteReviewImage(reviewId);
 
         // 리뷰와 연결된 좋아요 삭제
         reviewLikeRep.deleteAllByReviewId(reviewId);
 
-        return ResponseEntity.ok().body("리뷰 삭제에 성공했습니다.");
+        return ResponseEntity.ok(new CommonResDto("리뷰 삭제에 성공했습니다."));
     }
 
     /**
@@ -269,5 +280,29 @@ public class ReviewService {
             ReviewImage reviewImage = ReviewImage.createReviewImage(review, uploadFile, i);
             review.addImage(reviewImage);  // 리뷰에 이미지 추가
         }
+    }
+
+    /**
+     * 업로드된 이미지 파일 삭제
+     * @param reviewId 리뷰 PK
+     * */
+    private void deleteReviewImage(Long reviewId) {
+        // 이미지 서버에 저장된 이미지 삭제
+        List<ReviewImage> reviewImageList = reviewImageRep.findAllByReviewId(reviewId);
+        for(ReviewImage image : reviewImageList) {
+            imageClient.delete(ImageType.REVIEW, image.getUrl());
+        }
+
+        // 기존의 리뷰 이미지 삭제
+        reviewImageRep.deleteAllByReviewId(reviewId);
+    }
+
+    /**
+     * 가입된 사용자 여부 체크
+     * @param userId 사용자 PK
+     * */
+    public void getUserInfo(Long userId) {
+        boolean existsUser = userRep.existsById(userId);
+        if(!existsUser) throw new CustomException(NOT_EXISTS_USER);
     }
 }
