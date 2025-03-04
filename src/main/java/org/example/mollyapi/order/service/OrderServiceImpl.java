@@ -266,7 +266,6 @@ public class OrderServiceImpl implements OrderService{
             // 재고 부족 체크
             if (productItem.getQuantity() < detail.getQuantity()) {
                 log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}", productItem.getId(), detail.getQuantity(), productItem.getQuantity());
-                failOrder(order.getTossOrderId());
                 throw new IllegalArgumentException("재고가 부족하여 결제를 진행할 수 없습니다.");
             }
 
@@ -293,6 +292,8 @@ public class OrderServiceImpl implements OrderService{
                 deliveryInfo
         );
 
+        // tossOrderId로 결제가 존재하는지 확인
+
         // 11. 결제 진행
         Payment payment = paymentService.processPayment(userId, paymentRequestDto);
 
@@ -318,7 +319,8 @@ public class OrderServiceImpl implements OrderService{
      */
     // 별도 트랜잭션으로 분리 (결제만 재시도 가능하게)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void  handlePaymentFailure(Payment payment, String tossOrderId, String failureReason) {
+//    @Transactional
+    public void handlePaymentFailure(Payment payment, String tossOrderId, String failureReason) {
         log.error("결제 실패 - 주문 트랜잭션 유지, 결제만 롤백 진행: tossOrderId={}, failureReason={}", tossOrderId, failureReason);
 
         // 주문 조회
@@ -390,8 +392,7 @@ public class OrderServiceImpl implements OrderService{
     /**
      * 주문 실패 처리 - 주문 상태 변경, 사용포인트 & 재고 & 장바구니 복구, 배송 삭제, 주문 데이터 삭제
      */
-    // 실패에 exception 걸면 실패는 그냥 롤백되는거 아님?
-//    @Transactional
+    @Transactional
     public void failOrder(String tossOrderId) {
         log.error("주문 실패 처리 시작: tossOrderId={}", tossOrderId);
         // 1. 주문 조회
