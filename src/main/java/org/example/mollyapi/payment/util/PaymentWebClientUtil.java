@@ -2,6 +2,7 @@ package org.example.mollyapi.payment.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.config.WebClientUtil;
 import org.example.mollyapi.common.exception.CustomException;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
+@Getter
 public class PaymentWebClientUtil {
     private final WebClientUtil webClientUtil;
     @Value("${secret.confirm-url}")

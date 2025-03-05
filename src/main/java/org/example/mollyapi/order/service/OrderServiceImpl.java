@@ -36,6 +36,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
 import static org.example.mollyapi.common.exception.error.impl.OrderError.*;
 
 import java.time.LocalDateTime;
@@ -295,7 +298,8 @@ public class OrderServiceImpl implements OrderService{
         // tossOrderId로 결제가 존재하는지 확인
 
         // 11. 결제 진행
-        Payment payment = paymentService.processPayment(userId, paymentRequestDto);
+        Payment payment = Payment.create(user,tossOrderId, paymentKey, paymentType, amount, PaymentStatus.APPROVED);
+        paymentService.processPayment(user, order, paymentRequestDto);
 
         // 12. 결제 성공/실패에 따라 나머지 로직 처리
         if (payment.getStatus() == PaymentStatus.APPROVED) {
@@ -318,6 +322,7 @@ public class OrderServiceImpl implements OrderService{
      * 결제 실패 - 결제 자동 재시도
      */
     // 별도 트랜잭션으로 분리 (결제만 재시도 가능하게)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
 //    @Transactional
     public void handlePaymentFailure(Payment payment, String tossOrderId, String failureReason) {

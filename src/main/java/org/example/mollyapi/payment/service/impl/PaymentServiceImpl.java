@@ -1,11 +1,17 @@
 package org.example.mollyapi.payment.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.common.exception.error.impl.UserError;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
+import org.example.mollyapi.order.entity.Order;
+import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.payment.dto.request.PaymentCancelReqDto;
 import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
 import org.example.mollyapi.payment.dto.request.TossCancelReqDto;
@@ -27,10 +33,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+
+import static java.lang.Math.toIntExact;
+
+@Getter
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -38,6 +50,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentWebClientUtil paymentWebClientUtil;
     private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
     @Value("${secret.payment-api-key}")
     private String apiKey;
@@ -79,12 +92,12 @@ public class PaymentServiceImpl implements PaymentService {
         결제 요청 실행 (API 호출 및 결제 데이터 저장)
      */
     @Transactional
-    public Payment processPayment(Long userId,
+    public Payment processPayment(User user, Order order,
                                   PaymentRequestDto requestDto) {
 
         // 1. 결제 엔티티 생성
-        Payment payment = createPayment(
-                userId,
+        Payment payment = Payment.create(
+                user,
                 requestDto.tossOrderId(),
                 requestDto.paymentKey(),
                 requestDto.paymentType(),
@@ -107,7 +120,7 @@ public class PaymentServiceImpl implements PaymentService {
 //            throw new CustomException(PaymentError.PAYMENT_FAILED);
             return payment; // 결제 재시도 가능하도록
         }
-        payment.updatePaymentStatus(PaymentStatus.APPROVED);
+        payment.successPayment(order);
         paymentRepository.save(payment);
         return payment;
     }
@@ -186,4 +199,36 @@ public class PaymentServiceImpl implements PaymentService {
     public <T> boolean validateResponse(ResponseEntity<T> response) {
         return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
     }
+
+
+
+    /*
+        결제 취소
+     */
+    public boolean cancelPayment(Long userId, PaymentCancelReqDto paymentCancelReqDto) {
+
+        //Payment 있는지 확인
+        Payment payment = findPaymentByPaymentKey(paymentCancelReqDto.paymentKey());
+
+        //Toss request 객체로 변환
+        TossCancelReqDto tossCancelReqDto = new TossCancelReqDto(paymentCancelReqDto.cancelReason(), paymentCancelReqDto.cancelAmount());
+
+        //tossApi 호출
+        ResponseEntity<TossCancelResDto> response = tossPaymentCancelApi(tossCancelReqDto, paymentCancelReqDto.paymentKey());
+
+        // response 정합성 검사
+        boolean res = validateResponse(response);
+
+        // body 추출
+        TossCancelResDto tossResDto = response.getBody();
+
+        // 취소 성공 로직 (payment 상태 canceled 로 변경)
+        if (res) {
+            payment.cancelPayment();
+        }
+
+        // 성공 여부 리턴
+        return res;
+    }
+
 }

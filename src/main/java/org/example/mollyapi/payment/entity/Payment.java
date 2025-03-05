@@ -111,6 +111,11 @@ public class Payment extends Base {
         this.paymentStatus = paymentStatus;
     }
 
+    public void successPayment(Order order) {
+        this.order = order;
+        this.paymentStatus = PaymentStatus.APPROVED;
+    }
+
     public PaymentStatus getStatus() {
         return this.paymentStatus;
     }

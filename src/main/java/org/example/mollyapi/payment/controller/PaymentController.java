@@ -35,36 +35,36 @@ import java.util.List;
 public class PaymentController {
     private final PaymentService paymentService;
 
-    @PostMapping("/confirm")
-    @Operation(summary = "결제 검증 API", description = "tossPayments 결제 승인을 요청하고, 결제 금액을 검증합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
-            @ApiResponse(responseCode = "400", description = "실패",
-                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
-    })
+//    @PostMapping("/confirm")
+//    @Operation(summary = "결제 검증 API", description = "tossPayments 결제 승인을 요청하고, 결제 금액을 검증합니다.")
+//    @ApiResponses({
+//            @ApiResponse(responseCode = "200", description = "성공",
+//                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
+//            @ApiResponse(responseCode = "400", description = "실패",
+//                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
+//    })
 
 
-    @Auth
-    public ResponseEntity<PaymentResDto> confirmPayment(HttpServletRequest request, @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
-
-        Long userId = (Long) request.getAttribute("userId");
-
-        // PaymentRequestDto 객체 생성 (Order 정보 대신 tossOrderId 사용)
-        PaymentRequestDto paymentRequestDto = new PaymentRequestDto(
-                paymentConfirmReqDto.tossOrderId(),
-                paymentConfirmReqDto.paymentKey(),
-                paymentConfirmReqDto.amount(),
-                paymentConfirmReqDto.paymentType(),
-                paymentConfirmReqDto.point(),
-                paymentConfirmReqDto.delivery()
-        );
-
-        // processPayment 호출 방식 변경 (orderId 제거)
-        Payment payment = paymentService.processPayment(userId, paymentRequestDto);
-
-        return ResponseEntity.ok().body(PaymentResDto.from(payment));
-    }
+//    @Auth
+//    public ResponseEntity<PaymentResDto> confirmPayment(HttpServletRequest request, @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
+//
+//        Long userId = (Long) request.getAttribute("userId");
+//
+//        // PaymentRequestDto 객체 생성 (Order 정보 대신 tossOrderId 사용)
+//        PaymentRequestDto paymentRequestDto = new PaymentRequestDto(
+//                paymentConfirmReqDto.tossOrderId(),
+//                paymentConfirmReqDto.paymentKey(),
+//                paymentConfirmReqDto.amount(),
+//                paymentConfirmReqDto.paymentType(),
+//                paymentConfirmReqDto.point(),
+//                paymentConfirmReqDto.delivery()
+//        );
+//
+//        // processPayment 호출 방식 변경 (orderId 제거)
+//        Payment payment = paymentService.processPayment(userId, paymentRequestDto);
+//
+//        return ResponseEntity.ok().body(PaymentResDto.from(payment));
+//    }
 
 
     @Operation(summary = "주문의 최근 결제내역 조회 api", description = "해당 주문의 가장 최근 결제 내역을 조회합니다.")
@@ -110,36 +110,36 @@ public class PaymentController {
         return ResponseEntity.ok().body(response);
     }
 
-    @Operation(summary = "주문 생성후 결제 성공과 주문 성공 테스트 엔드포인트", description = "paymentKey, paymentType, delivery 필드는 임의의 값을 대입해 결제 정보를 생성하고 주문 성공 로직을 실행합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
-            @ApiResponse(responseCode = "400", description = "실패",
-                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
-    })
+//    @Operation(summary = "주문 생성후 결제 성공과 주문 성공 테스트 엔드포인트", description = "paymentKey, paymentType, delivery 필드는 임의의 값을 대입해 결제 정보를 생성하고 주문 성공 로직을 실행합니다.")
+//    @ApiResponses({
+//            @ApiResponse(responseCode = "200", description = "성공",
+//                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
+//            @ApiResponse(responseCode = "400", description = "실패",
+//                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
+//    })
 
-    @PostMapping("/success/test")
-    public ResponseEntity<Void> paymentSuccessProcessTest(HttpServletRequest request, @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
+//    @PostMapping("/success/test")
+//    public ResponseEntity<Void> paymentSuccessProcessTest(HttpServletRequest request, @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
 //        Long userId = (Long) request.getAttribute("userId");
-        log.warn(paymentConfirmReqDto.toString());
-        Payment payment = paymentService.createPayment(19L,
-                paymentConfirmReqDto.tossOrderId(),
-                paymentConfirmReqDto.paymentKey(),
-                paymentConfirmReqDto.paymentType(),
-                paymentConfirmReqDto.amount(),
-                PaymentStatus.APPROVED
-        );
-
-        log.info(MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery()));
-        log.warn("yes");
-
-//        paymentService.successPayment(payment,
+//        log.warn(paymentConfirmReqDto.toString());
+//        Payment payment = paymentService.createPayment(19L,
 //                paymentConfirmReqDto.tossOrderId(),
-//                Integer.parseInt(AESUtil.decrypt(paymentConfirmReqDto.point())),
-//                MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery())
-//                );
-
-        return ResponseEntity.ok().build();
-    }
+//                paymentConfirmReqDto.paymentKey(),
+//                paymentConfirmReqDto.paymentType(),
+//                paymentConfirmReqDto.amount(),
+//                PaymentStatus.APPROVED
+//        );
+//
+//        log.info(MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery()));
+//        log.warn("yes");
+//
+////        paymentService.successPayment(payment,
+////                paymentConfirmReqDto.tossOrderId(),
+////                Integer.parseInt(AESUtil.decrypt(paymentConfirmReqDto.point())),
+////                MapperUtil.convertDtoToJson(paymentConfirmReqDto.delivery())
+////                );
+//
+//        return ResponseEntity.ok().build();
+//    }
 
 }
