@@ -112,9 +112,12 @@ public class Payment extends Base {
         this.paymentStatus = paymentStatus;
     }
 
-    public void successPayment(Order order) {
-        this.order = order;
+    public void successPayment() {
         this.paymentStatus = PaymentStatus.APPROVED;
+    }
+
+    public void pendingPayment() {
+        this.paymentStatus = PaymentStatus.PENDING;
     }
 
     public PaymentStatus getStatus() {

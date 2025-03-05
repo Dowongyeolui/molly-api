@@ -9,6 +9,7 @@ import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.OrderError;
+import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
@@ -250,28 +251,30 @@ public class OrderServiceImpl implements OrderService{
         // 3. 결제 금액 검증
         validateAmount(order.getTotalAmount(), amount);
 
-        // 4. 포인트 정보 복호화 및 검증, 차감
+        // 4. 포인트 정보 복호화 및 검증, 차감 (tx1)
         Integer pointUsage = Integer.parseInt(AESUtil.decryptWithSalt(point));
         validateUserPoint(user, pointUsage);
         user.updatePoint(-pointUsage);
         userRepository.save(user);
 
-//        // 5. 주문 <- 결제 정보 업데이트(PENDING 유지)
-//        order.updatePaymentInfo(null);
-
-        // 6. 배송 정보 생성 후 주문에 연결
+        // 5. 배송 정보 생성 후 주문에 연결 (tx1)
         Delivery delivery = createDelivery(deliveryInfo);
         order.setDelivery(delivery);
         deliveryRepository.save(delivery); // * 서비스로
 
-        // 7. 이미 실패한 결제가 있는지 확인 (재고 차감여부 확인)
-        PaymentInfoResDto paymentInfoResDto = paymentService.findLatestPayment(order.getId());
+        // 6. 해당 주문에 이미 결제가      있는지 확인 ( 주문에 결제는 하나밖에 없음 )
+        Optional<PaymentInfoResDto> paymentInfoResDto = paymentService.findLatestPayment(order.getId());
 
-        // 8. 재고 검증 및 차감 (tx2)
-        if (paymentInfoResDto.paymentStatus()!=PaymentStatus.FAILED){
-            validateStock(order);
+        // 7. 재고 검증 및 차감 (tx2)
+        paymentInfoResDto.ifPresentOrElse(
+                payment -> log.info("최근 결제 내역 존재: {}", payment),
+                () -> validateBeforePayment(user, order, point, deliveryInfo)
+        );
+
+        // 8. 장바구니에서 주문한 상품 삭제
+        for (OrderDetail orderDetail : order.getOrderDetails()) {
+            cartRepository.deleteById(orderDetail.getCartId()); // +) 예외 추가 - cart가 존재하지 않을 경우
         }
-
         // 9. 주문 정보 저장
         orderRepository.save(order);
 
@@ -285,8 +288,6 @@ public class OrderServiceImpl implements OrderService{
                 order.getPointUsage()
         );
 
-        // tossOrderId로 결제가 존재하는지 확인
-
         // 11. 결제 진행
         /* internal server error일 경우 -> 자동 재시도
             다른 에러일 경우 수동 재시도 로직 (주문 저장, 결제만 재시도)
@@ -295,20 +296,22 @@ public class OrderServiceImpl implements OrderService{
 
 
         // 12. 결제 성공/실패에 따라 나머지 로직 처리
-        if (payment.getStatus() == PaymentStatus.APPROVED) {
-            order.addPayment(payment);  // 새로운 결제 추가 ** 삭제! 성공 페이만 들어감
-            order.updatePaymentInfo(); // 최신 결제 정보 업데이트
-            order.updateStatus(OrderStatus.SUCCEEDED);
-            orderRepository.save(order);
-            return PaymentResDto.from(payment);
-        } else { // 결제 실패시 결제 재시도로 보냄
-            handlePaymentFailure(payment, tossOrderId, "결제 실패");
-            return PaymentResDto.from(payment);
+        switch (payment.getStatus()) {
+            case APPROVED -> {
+                order.addPayment(payment);  // 새로운 결제 추가
+                order.updatePaymentInfo(); // 최신 결제 정보 업데이트
+                order.updateStatus(OrderStatus.SUCCEEDED);
+                orderRepository.save(order);
+            }
+            case PENDING -> handlePaymentFailure(payment, tossOrderId, "결제 실패");
+            case FAILED -> throw new CustomException(PAYMENT_RETRY_REQUIRED);
         }
+
+        return PaymentResDto.from(payment);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void validateStock(Order order){
+    public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
 
         // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
@@ -324,11 +327,6 @@ public class OrderServiceImpl implements OrderService{
             // 재고 차감
             productItem.decreaseStock(detail.getQuantity());
             productItemRepository.save(productItem);
-        }
-
-        // 2. 장바구니에서 주문한 상품 삭제
-        for (OrderDetail orderDetail : order.getOrderDetails()) {
-            cartRepository.deleteById(orderDetail.getCartId()); // +) 예외 추가 - cart가 존재하지 않을 경우
         }
     }
 

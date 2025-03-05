@@ -22,11 +22,14 @@ import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Getter
@@ -49,12 +52,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public PaymentInfoResDto findLatestPayment(Long orderId) {
+    public Optional<PaymentInfoResDto> findLatestPayment(Long orderId) {
         Pageable pageable = PageRequest.of(0, 1);
         return paymentRepository.findLatestPaymentByOrderId(orderId, pageable).stream()
                 .findFirst()
-                .map(PaymentInfoResDto::from)
-                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND));
+                .map(PaymentInfoResDto::from);
     }
 
     @Override
@@ -91,14 +93,11 @@ public class PaymentServiceImpl implements PaymentService {
                 requestDto.amount()));
 
         // 3. 응답 검증
-        boolean isSuccess = validateResponse(response);
-
-        // 결제 실패 시 예외 처리
-        if (!isSuccess) {
-            payment.failPayment("결제 실패");
-            paymentRepository.save(payment);
-//            throw new CustomException(PaymentError.PAYMENT_FAILED);
-            return payment; // 결제 재시도 가능하도록
+        // pending -> 자동 재시도, fail -> 수동 재시도, approve -> 완료
+        switch (getStatusCodeToString(response)) {
+            case "200" -> payment.successPayment();
+            case "400" -> payment.failPayment("결제 실패");
+            case "500" -> payment.pendingPayment();
         }
         paymentRepository.save(payment);
         return payment;
@@ -177,12 +176,21 @@ public class PaymentServiceImpl implements PaymentService {
     /*
         HTTP 응답 검증
      */
-    public <T> boolean validateResponse(ResponseEntity<T> response) {
-        return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
+    private <T> String getStatusCodeToString(ResponseEntity<T> response) {
+        HttpStatusCode statusCode = response.getStatusCode();
+        int statusValue = statusCode.value(); // 상태 코드 정수값 가져오기
+
+        if (statusValue >= 200 && statusValue < 300) {
+            return "200"; // 모든 2xx 응답을 200으로 변환
+        } else if (statusValue >= 400 && statusValue < 500) {
+            return "400"; // 모든 4xx 응답을 400으로 변환
+        }
+
+        return String.valueOf(statusValue); // 1xx, 3xx, 5xx 등은 원래 값 유지
     }
 
-    public <T> boolean is500Response(ResponseEntity<T> response) {
-        return response.getStatusCode().is5xxServerError() && response.getBody() != null;
+    public <T> boolean validateResponse(ResponseEntity<T> response) {
+        return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
     }
 
 

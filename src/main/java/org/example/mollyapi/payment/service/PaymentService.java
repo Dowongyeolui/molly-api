@@ -11,6 +11,7 @@ import org.example.mollyapi.user.entity.User;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PaymentService {
 
@@ -32,7 +33,7 @@ public interface PaymentService {
     public Payment findPaymentByPaymentKey(String paymentKey);
 
     //orderId로 최신결제찾기
-    public PaymentInfoResDto findLatestPayment(Long orderId);
+    public Optional<PaymentInfoResDto> findLatestPayment(Long orderId);
 
     //orderId로 모든 결제정보 찾기
     public List<PaymentInfoResDto> findAllPayments(Long orderId);
