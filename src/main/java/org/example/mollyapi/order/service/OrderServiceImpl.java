@@ -19,7 +19,9 @@ import org.example.mollyapi.order.repository.OrderDetailRepository;
 import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
+import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
 import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
+import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.repository.PaymentRepository;
@@ -33,6 +35,7 @@ import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -261,7 +264,53 @@ public class OrderServiceImpl implements OrderService{
         order.setDelivery(delivery);
         deliveryRepository.save(delivery); // * 서비스로
 
-        // 7. 재고 확인 및 차감 (비관적 락)
+        // 7. 이미 실패한 결제가 있는지 확인 (재고 차감여부 확인)
+        PaymentInfoResDto paymentInfoResDto = paymentService.findLatestPayment(order.getId());
+
+        // 8. 재고 검증 및 차감 (tx2)
+        if (paymentInfoResDto.paymentStatus()!=PaymentStatus.FAILED){
+            validateStock(order);
+        }
+
+        // 9. 주문 정보 저장
+        orderRepository.save(order);
+
+        // 10. PaymentRequestDto 생성 후 PaymentService 호출
+        PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(
+                order.getId(),
+                order.getTossOrderId(),
+                order.getPaymentId(),
+                order.getTotalAmount(),
+                order.getPaymentType(),
+                order.getPointUsage()
+        );
+
+        // tossOrderId로 결제가 존재하는지 확인
+
+        // 11. 결제 진행
+        /* internal server error일 경우 -> 자동 재시도
+            다른 에러일 경우 수동 재시도 로직 (주문 저장, 결제만 재시도)
+        */
+        Payment payment = paymentService.processPayment(userId, paymentConfirmReqDto);
+
+
+        // 12. 결제 성공/실패에 따라 나머지 로직 처리
+        if (payment.getStatus() == PaymentStatus.APPROVED) {
+            order.addPayment(payment);  // 새로운 결제 추가 ** 삭제! 성공 페이만 들어감
+            order.updatePaymentInfo(); // 최신 결제 정보 업데이트
+            order.updateStatus(OrderStatus.SUCCEEDED);
+            orderRepository.save(order);
+            return PaymentResDto.from(payment);
+        } else { // 결제 실패시 결제 재시도로 보냄
+            handlePaymentFailure(payment, tossOrderId, "결제 실패");
+            return PaymentResDto.from(payment);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void validateStock(Order order){
+
+        // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
             ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
@@ -277,42 +326,12 @@ public class OrderServiceImpl implements OrderService{
             productItemRepository.save(productItem);
         }
 
-        // 8. 장바구니에서 주문한 상품 삭제
+        // 2. 장바구니에서 주문한 상품 삭제
         for (OrderDetail orderDetail : order.getOrderDetails()) {
             cartRepository.deleteById(orderDetail.getCartId()); // +) 예외 추가 - cart가 존재하지 않을 경우
         }
-
-        // 9. 주문 정보 저장
-        orderRepository.save(order);
-
-        // 10. PaymentRequestDto 생성 후 PaymentService 호출
-        PaymentRequestDto paymentRequestDto = new PaymentRequestDto(
-                tossOrderId,
-                paymentKey,
-                amount,
-                paymentType,
-                point,
-                deliveryInfo
-        );
-
-        // tossOrderId로 결제가 존재하는지 확인
-
-        // 11. 결제 진행
-        Payment payment = Payment.create(user,tossOrderId, paymentKey, paymentType, amount, PaymentStatus.APPROVED);
-        paymentService.processPayment(user, order, paymentRequestDto);
-
-        // 12. 결제 성공/실패에 따라 나머지 로직 처리
-        if (payment.getStatus() == PaymentStatus.APPROVED) {
-            order.addPayment(payment);  // 새로운 결제 추가 ** 삭제! 성공 페이만 들어감
-            order.updatePaymentInfo(); // 최신 결제 정보 업데이트
-            order.updateStatus(OrderStatus.SUCCEEDED);
-            orderRepository.save(order);
-            return PaymentResDto.from(payment);
-        } else { // 결제 실패시 결제 재시도로 보냄
-            handlePaymentFailure(payment, tossOrderId, "결제 실패");
-            return PaymentResDto.from(payment);
-        }
     }
+
 
     private Delivery createDelivery(DeliveryReqDto deliveryInfo) {
         return Delivery.from(deliveryInfo);
@@ -321,8 +340,6 @@ public class OrderServiceImpl implements OrderService{
     /**
      * 결제 실패 - 결제 자동 재시도
      */
-    // 별도 트랜잭션으로 분리 (결제만 재시도 가능하게)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
 //    @Transactional
     public void handlePaymentFailure(Payment payment, String tossOrderId, String failureReason) {
@@ -643,6 +660,15 @@ public class OrderServiceImpl implements OrderService{
         return orderDetails.stream()
                 .mapToLong(d -> d.getPrice() * d.getQuantity())
                 .sum();
+    }
+
+
+    private void tx23(){
+        tx24();
+    }
+    @Transactional
+    public void tx24(){
+
     }
 
 }

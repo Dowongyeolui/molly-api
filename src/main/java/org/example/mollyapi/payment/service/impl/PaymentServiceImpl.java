@@ -1,21 +1,14 @@
 package org.example.mollyapi.payment.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.common.exception.error.impl.UserError;
-import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
-import org.example.mollyapi.payment.dto.request.PaymentCancelReqDto;
-import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
-import org.example.mollyapi.payment.dto.request.TossCancelReqDto;
-import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
+import org.example.mollyapi.payment.dto.request.*;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.TossCancelResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
@@ -33,14 +26,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
-
-
-import static java.lang.Math.toIntExact;
 
 @Getter
 @Service
@@ -92,18 +79,11 @@ public class PaymentServiceImpl implements PaymentService {
         결제 요청 실행 (API 호출 및 결제 데이터 저장)
      */
     @Transactional
-    public Payment processPayment(User user, Order order,
-                                  PaymentRequestDto requestDto) {
+    public Payment processPayment(Long userId,
+                                  PaymentConfirmReqDto requestDto) {
 
         // 1. 결제 엔티티 생성
-        Payment payment = Payment.create(
-                user,
-                requestDto.tossOrderId(),
-                requestDto.paymentKey(),
-                requestDto.paymentType(),
-                requestDto.amount(),
-                PaymentStatus.PENDING
-        );
+        Payment payment = createPayment(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount(), PaymentStatus.PENDING);
 
         // 2. toss payments API 호출
         ResponseEntity<TossConfirmResDto> response = tossPaymentApi(new TossConfirmReqDto(requestDto.tossOrderId(),
@@ -120,7 +100,6 @@ public class PaymentServiceImpl implements PaymentService {
 //            throw new CustomException(PaymentError.PAYMENT_FAILED);
             return payment; // 결제 재시도 가능하도록
         }
-        payment.successPayment(order);
         paymentRepository.save(payment);
         return payment;
     }
@@ -128,13 +107,15 @@ public class PaymentServiceImpl implements PaymentService {
     /*
         결제 요청 생성
      */
-    @Transactional
-    public Payment createPayment(Long userId, String tossOrderId,
+    @Override
+    public Payment createPayment(Long userId, Long orderId, String tossOrderId,
                                  String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(PaymentError.ORDER_NOT_FOUND));
 
-        Payment payment = Payment.create(user, tossOrderId, paymentKey, paymentType, amount, PaymentStatus.PENDING);
+        Payment payment = Payment.create(user, order, tossOrderId, paymentKey, paymentType, amount, PaymentStatus.PENDING);
         paymentRepository.save(payment);
         return payment;
     }
@@ -144,7 +125,7 @@ public class PaymentServiceImpl implements PaymentService {
      */
     @Override
     public ResponseEntity<TossConfirmResDto> tossPaymentApi(TossConfirmReqDto tossConfirmReqDto) {
-        return ResponseEntity.ok(paymentWebClientUtil.confirmPayment(tossConfirmReqDto, apiKey));
+        return paymentWebClientUtil.confirmPayment(tossConfirmReqDto, apiKey);
     }
 
     /*
@@ -182,13 +163,13 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         // 기존 결제 정보를 기반으로 새로운 결제 요청 생성
-        PaymentRequestDto retryRequest = new PaymentRequestDto(
+        PaymentConfirmReqDto retryRequest = new PaymentConfirmReqDto(
+                payment.getOrder().getId(),
                 payment.getTossOrderId(),
                 payment.getPaymentKey(),
                 payment.getAmount(),
                 payment.getPaymentType(),
-                "0", // 포인트는 이미 차감되었으므로 0으로 설정
-                DeliveryReqDto.from(payment.getOrder().getDelivery()) // 기존 배송 정보 사용
+                0// 포인트는 이미 차감되었으므로 0으로 설정
         );
         return processPayment(userId, retryRequest);
     }
@@ -198,6 +179,10 @@ public class PaymentServiceImpl implements PaymentService {
      */
     public <T> boolean validateResponse(ResponseEntity<T> response) {
         return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
+    }
+
+    public <T> boolean is500Response(ResponseEntity<T> response) {
+        return response.getStatusCode().is5xxServerError() && response.getBody() != null;
     }
 
 

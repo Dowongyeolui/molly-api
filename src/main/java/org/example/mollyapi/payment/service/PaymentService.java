@@ -1,8 +1,7 @@
 package org.example.mollyapi.payment.service;
 
-import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.payment.dto.request.PaymentCancelReqDto;
-import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
+import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
 import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
@@ -16,10 +15,9 @@ import java.util.List;
 public interface PaymentService {
 
     //결제 승인 절차
-    Payment processPayment(Long userId, PaymentRequestDto requestDto);
+    Payment processPayment(Long userId, PaymentConfirmReqDto requestDto);
 
-    
-    public Payment processPayment(User user, Order order, PaymentRequestDto requestDto);
+//    public Payment processPayment(User user, Order order, PaymentRequestDto requestDto);
 
 //    //결제 성공 절차
 //    public void successPayment(Payment payment, String tossOrderId,Integer point, String deliveryInfoJson);
@@ -42,7 +40,7 @@ public interface PaymentService {
     //userId로 모든 결제정보 찾기
     public List<PaymentInfoResDto> findUserPayments(Long userId);
 
-    public Payment createPayment(Long userId, String tossOrderId, String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus);
+    public Payment createPayment(Long userId, Long orderId, String tossOrderId, String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus);
 
     <T> boolean validateResponse(ResponseEntity<T> response);
 

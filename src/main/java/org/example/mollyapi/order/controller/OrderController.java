@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.order.dto.*;
 import org.example.mollyapi.order.service.OrderServiceImpl;
-import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.MediaType;
@@ -104,18 +103,18 @@ public class OrderController {
     public ResponseEntity<PaymentResDto> processPayment(
             HttpServletRequest request,
             @PathVariable Long orderId,
-            @Valid @RequestBody PaymentConfirmReqDto paymentConfirmReqDto) {
+            @Valid @RequestBody OrderConfirmRequestDto orderConfirmRequestDto) {
 
         Long userId = (Long) request.getAttribute("userId");
 
         PaymentResDto response = orderServiceImpl.processPayment(
                 userId,
-                paymentConfirmReqDto.paymentKey(),
-                paymentConfirmReqDto.tossOrderId(),
-                paymentConfirmReqDto.amount(),
-                paymentConfirmReqDto.point(),
-                paymentConfirmReqDto.paymentType(),
-                paymentConfirmReqDto.delivery()
+                orderConfirmRequestDto.paymentKey(),
+                orderConfirmRequestDto.tossOrderId(),
+                orderConfirmRequestDto.amount(),
+                orderConfirmRequestDto.point(),
+                orderConfirmRequestDto.paymentType(),
+                orderConfirmRequestDto.delivery()
         );
 
         return ResponseEntity.ok(response);

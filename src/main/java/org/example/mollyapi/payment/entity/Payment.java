@@ -75,10 +75,11 @@ public class Payment extends Base {
     }
 
     // 생성자 팩토리 메서드
-    public static Payment create(User user, String tossOrderId,
+    public static Payment create(User user, Order order, String tossOrderId,
                                  String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
         return Payment.builder()
                 .user(user)
+                .order(order)
                 .tossOrderId(tossOrderId)
                 .paymentKey(paymentKey)
                 .paymentType(paymentType)

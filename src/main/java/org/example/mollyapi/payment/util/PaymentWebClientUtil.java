@@ -33,20 +33,18 @@ public class PaymentWebClientUtil {
         this.webClientUtil = webClientUtil;
     }
 
-    public TossConfirmResDto confirmPayment(TossConfirmReqDto request, String apiKey) {
+    public ResponseEntity<TossConfirmResDto> confirmPayment(TossConfirmReqDto request, String apiKey) {
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes()));
         headers.put("Content-Type", "application/json");
 
         try {
-            ResponseEntity<TossConfirmResDto> response = webClientUtil.post(
+            return webClientUtil.post(
                     confirmUrl,
                     request,
                     TossConfirmResDto.class,
                     headers
             );
-
-            return response.getBody();
         } catch (WebClientResponseException e) {
             handlePaymentError(e);
             throw e;
