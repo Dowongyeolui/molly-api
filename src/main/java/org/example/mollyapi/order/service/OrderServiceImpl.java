@@ -239,6 +239,7 @@ public class OrderServiceImpl implements OrderService{
      */
     @Transactional
     public PaymentResDto processPayment(Long userId, String paymentKey, String tossOrderId, Long amount, String point, String paymentType, DeliveryReqDto deliveryInfo) {
+        System.out.println("----------------------------------ProcessPayment 트랜잭션 시작----------------------------------");
 
         /// 1. 사용자 조회
         User user = userRepository.findById(userId)
@@ -306,15 +307,16 @@ public class OrderServiceImpl implements OrderService{
             case PENDING -> handlePaymentFailure(payment, tossOrderId, "결제 실패");
             case FAILED -> throw new CustomException(PAYMENT_RETRY_REQUIRED);
         }
-
+        System.out.println("----------------------------------ProcessPayment 트랜잭션 종료----------------------------------");
         return PaymentResDto.from(payment);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
-
+        System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
         // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
+//            System.out.println("getOrderDetail: " + detail.getProductName());
             ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
 
@@ -327,6 +329,7 @@ public class OrderServiceImpl implements OrderService{
             // 재고 차감
             productItem.decreaseStock(detail.getQuantity());
             productItemRepository.save(productItem);
+            System.out.println("----------------------------------재고 트랜잭션 커밋----------------------------------");
         }
     }
 
@@ -341,6 +344,7 @@ public class OrderServiceImpl implements OrderService{
     @Transactional(propagation = Propagation.REQUIRES_NEW)
 //    @Transactional
     public void handlePaymentFailure(Payment payment, String tossOrderId, String failureReason) {
+        System.out.println("----------------------------------재시도 트랜잭션 시작----------------------------------");
         log.error("결제 실패 - 주문 트랜잭션 유지, 결제만 롤백 진행: tossOrderId={}, failureReason={}", tossOrderId, failureReason);
 
         // 주문 조회
@@ -360,6 +364,7 @@ public class OrderServiceImpl implements OrderService{
                 order.updatePaymentInfo();
                 order.updateStatus(OrderStatus.SUCCEEDED);
                 orderRepository.save(order);
+                System.out.println("----------------------------------재시도 트랜잭션 종료----------------------------------");
                 return;
             }
             log.warn("결제 재시도 실패 {}/3: tossOrderId={}", i, tossOrderId);
@@ -391,7 +396,7 @@ public class OrderServiceImpl implements OrderService{
             throw new IllegalStateException("결제 가능 시간이 초과되었습니다. 주문을 다시 생성해주세요.");
         }
 
-        // 기존 결제 정보 확인
+        // 기존 결제 정보 확인 (paymentService 코드 사용으로 리팩토링)
         Payment latestPayment = paymentRepository.findLatestPaymentByOrderId(orderId, PageRequest.of(0, 1))
                 .stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("결제 정보가 없습니다. orderId=" + orderId));

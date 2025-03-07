@@ -32,7 +32,7 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderDetail> orderDetails = new ArrayList<>();
 
 
@@ -115,6 +115,7 @@ public class Order {
         this.orderedAt = payment.getPaymentDate();
     }
 
+    //결제한개밖에 등록안됨
     public void updatePaymentInfo() {
         payments.stream()
                 .max(Comparator.comparing(Payment::getPaymentDate))

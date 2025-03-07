@@ -161,7 +161,7 @@ public class PaymentServiceTest {
 
     }
 
-    @DisplayName("Toss API 에서 5xx 에러를 리턴합니다. 결제는 PENDING 상태로 존재합니다..")
+    @DisplayName("Toss API 에서 5xx 에러를 리턴합니다. 결제는 PENDING 상태로 생성됩니다.")
     @Test
     void processPaymentWithToss5xxError(){
         //given
@@ -190,15 +190,6 @@ public class PaymentServiceTest {
                 .isEqualTo(List.of(PaymentStatus.PENDING, tossOrderId, order.getTotalAmount(), "NORMAL"));
 
     }
-
-
-    @DisplayName("결제실패 상태의 주문에 대해 결제를 요청합니다. 포인트 차감 및 재고가 감소가 없습니다.")
-    @Test
-    void processPaymentFromProgressingOrder(){
-
-    }
-
-
 
 //    @DisplayName("이미 완료된 주문에 대해 결제를 시도합니다")
 //    @Test
