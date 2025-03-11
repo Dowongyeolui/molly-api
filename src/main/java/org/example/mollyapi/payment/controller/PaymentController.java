@@ -82,19 +82,6 @@ public class PaymentController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "주문의 모든 결제내역 조회 api", description = "해당 주문의 모든 결제 내역을 조회합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = CommonResDto.class))),
-            @ApiResponse(responseCode = "400", description = "실패",
-                    content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
-    })
-    @PostMapping("/list")
-    public ResponseEntity<List<PaymentInfoResDto>> getPaymentList(@RequestBody PaymentInfoReqDto paymentInfoReqDto) {
-
-        List<PaymentInfoResDto> response = paymentService.findAllPayments(paymentInfoReqDto.orderId());
-        return ResponseEntity.ok().body(response);
-    }
 
     @Operation(summary = "나의 모든 결제내역 조회 api", description = "나의 모든 결제 내역을 조회합니다.")
     @ApiResponses({

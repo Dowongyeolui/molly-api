@@ -22,7 +22,6 @@ import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -58,15 +57,6 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository.findLatestPaymentByOrderId(orderId, pageable).stream()
                 .findFirst()
                 .map(PaymentInfoResDto::from);
-    }
-
-    @Override
-    public List<PaymentInfoResDto> findAllPayments(Long orderId) {
-        return paymentRepository.findAllByOrderByCreatedAtDesc()
-                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND))
-                .stream()
-                .map(PaymentInfoResDto::from)
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -160,8 +150,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional
     public Payment retryPayment(Long userId, String tossOrderId, String paymentKey) {
-        Payment payment = paymentRepository.findByTossOrderIdAndUserId(tossOrderId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("결제 정보를 찾을 수 없습니다. tossOrderId=" + tossOrderId));
+        Payment payment = paymentRepository.findTopLatestPaymentByOrderId(tossOrderId)
+                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND));
 
         if (!payment.canRetry()) {
             throw new IllegalStateException("최대 결제 재시도 횟수를 초과했습니다.");
