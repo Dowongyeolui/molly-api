@@ -20,4 +20,10 @@ INSERT INTO orders (order_id, cancel_status, expiration_time, ordered_at, paymen
 VALUES (1, 'none', DATE_ADD(NOW(), INTERVAL 30 MINUTE), NOW(), null, 'pay-20250213132349-6572', null, 0, 0, 'pending', 'ord-20250213132349-6572', 50000, null, 1);
 
 INSERT INTO order_details (order_detail_id, brand_name, cart_id, price, product_name, quantity, size, order_id, item_id)
-VALUES (1, '베리시', null, 10000, '무지반팔', 5, 'XL', 1, 1);
+VALUES (1, '베리시', 1, 10000, '무지반팔', 5, 'XL', 1, 1);
+
+INSERT INTO cart (cart_id, created_at, updated_at, quantity, item_id, user_id)
+VALUES (1,null,null,5,1,1);
+
+-- INSERT INTO delivery (addr_detail, number_address, receiver_name, receiver_phone, road_address, status, order_id)
+-- VALUES ("조심히 해주세요", "12345","momo","010-5134-1111","판교판교","READY",1);
