@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    @Query("SELECT o FROM Order o JOIN FETCH o.orderDetails WHERE o.tossOrderId = :tossOrderId")
+    Optional<Order> findByTossOrderIdWithDetails(@Param("tossOrderId") String tossOrderId);
+
     Optional<Order> findByTossOrderId(String tossOrderId);
     List<Order> findByUserAndStatusIn(@Param("user") User user, @Param("statuses") List<OrderStatus> statuses);
 
