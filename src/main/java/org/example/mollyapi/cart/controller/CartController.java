@@ -43,7 +43,8 @@ public class CartController {
             @Valid @RequestBody AddCartReqDto addCartReqDto,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.addCart(addCartReqDto, userId);
+        cartService.addCart(addCartReqDto, userId);
+        return ResponseEntity.ok(new CommonResDto("장바구니 등록에 성공했습니다."));
     }
 
     @Auth
@@ -59,7 +60,8 @@ public class CartController {
     })
     public ResponseEntity<?> getCartDetail(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.getCartDetail(userId);
+        List<CartInfoResDto> responseDtoList = cartService.getCartDetail(userId);
+        return ResponseEntity.ok(responseDtoList);
     }
 
     @Auth
@@ -74,7 +76,8 @@ public class CartController {
             @Valid @RequestBody UpdateCartReqDto updateCartReqDto,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.updateItemOption(updateCartReqDto, userId);
+        cartService.updateItemOption(updateCartReqDto, userId);
+        return ResponseEntity.ok(new CommonResDto("옵션 변경에 성공했습니다."));
     }
 
     @Auth
@@ -92,6 +95,7 @@ public class CartController {
             @Valid @RequestBody List<Long> cartList,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.deleteCartItem(cartList, userId);
+        cartService.deleteCartItem(cartList, userId);
+        return ResponseEntity.ok(new CommonResDto("장바구니 내역 삭제에 성공했습니다."));
     }
 }

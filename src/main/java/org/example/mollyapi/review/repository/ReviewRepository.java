@@ -11,9 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReviewRepository extends JpaRepository<Review, Long>, ReviewCustomRepository {
-    Review findByIsDeletedAndOrderDetailIdAndUserUserId(Boolean isDeleted, Long orderDetail, Long userId);
+    Review findByIsDeletedAndOrderDetailIdAndUserUserId(Boolean isDeleted, Long orderDetail, Long us재erId);
     Optional<Review> findByIdAndUserUserIdAndIsDeleted(Long reviewId, Long userId, Boolean isDeleted);
-    Optional<Review> findByIdAndUserUserId(Long reviewId, Long userId);
 
     @Query("SELECT r.id FROM Review r WHERE r.orderDetail.id IN :orderDetailIds")
     List<Long> findReviewIdsByOrderDetailIds(@Param("orderDetailIds") List<Long> orderDetailIds);

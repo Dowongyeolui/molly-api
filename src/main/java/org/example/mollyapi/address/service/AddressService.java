@@ -1,7 +1,6 @@
 package org.example.mollyapi.address.service;
 
 import jakarta.transaction.Transactional;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.address.dto.AddressResponseDto;
@@ -15,7 +14,6 @@ import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor

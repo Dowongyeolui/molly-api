@@ -17,7 +17,6 @@ import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.service.PaymentService;
-import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
 import org.example.mollyapi.payment.util.AESUtil;
 import org.example.mollyapi.payment.util.MapperUtil;
 import org.example.mollyapi.user.auth.annotation.Auth;

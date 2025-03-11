@@ -9,8 +9,6 @@ import org.example.mollyapi.review.repository.ReviewLikeRepository;
 import org.example.mollyapi.review.repository.ReviewRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +27,9 @@ public class ReviewLikeService {
      * 좋아요 상태 변경
      * @param likeDto 리뷰 Pk, 좋아요 상태를 담은 Dto
      * @param userId 사용자 PK
-     * @return 좋아요 상태
      * */
     @Transactional
-    public ResponseEntity<?> changeReviewLike(UpdateReviewLikeReqDto likeDto, Long userId) {
+    public void changeReviewLike(UpdateReviewLikeReqDto likeDto, Long userId) {
         // 가입된 사용자 여부 체크
         User user = userRep.findById(userId)
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_USER));
@@ -57,9 +54,5 @@ public class ReviewLikeService {
         } else { // 이미 좋아요를 눌렀던 적이 있을 경우
             reviewLike.updateIsLike(likeDto.status());
         }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(reviewLike.getIsLike());
     }
 }

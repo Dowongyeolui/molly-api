@@ -1,8 +1,10 @@
 package org.example.mollyapi.order.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.example.mollyapi.product.entity.Product;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.example.mollyapi.product.entity.ProductItem;
 
 @Getter

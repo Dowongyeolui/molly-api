@@ -30,7 +30,6 @@ public class GlobalExceptionHandler {
         errors.put("error", "NOT_PARAM_VALID");
         e.getBindingResult().getAllErrors()
                 .forEach(c -> errors.put(((FieldError) c).getField(), c.getDefaultMessage()));
-        errors.put("httpStatusCode", HttpStatus.BAD_REQUEST);
         return ResponseEntity.badRequest().body(errors);
     }
 

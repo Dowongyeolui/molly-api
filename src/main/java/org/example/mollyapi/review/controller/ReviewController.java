@@ -11,12 +11,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.dto.CommonResDto;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
+import org.example.mollyapi.product.dto.response.ListResDto;
+import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.review.dto.request.AddReviewReqDto;
 import org.example.mollyapi.review.dto.response.GetMyReviewResDto;
 import org.example.mollyapi.review.dto.response.GetReviewResDto;
 import org.example.mollyapi.review.service.ReviewService;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +48,8 @@ public class ReviewController {
             @RequestPart(value = "reviewImages", required = false) List<MultipartFile> uploadImages,
             HttpServletRequest request){
         Long userId = (Long) request.getAttribute("userId");
-        return reviewService.registerReview(addReviewReqDto, uploadImages, userId);
+        reviewService.registerReview(addReviewReqDto, uploadImages, userId);
+        return ResponseEntity.ok(new CommonResDto("리뷰 등록에 성공했습니다."));
     }
 
     @Auth
@@ -60,14 +64,26 @@ public class ReviewController {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<?> getReviewList(
-            @PathVariable Long productId,
-            @RequestParam int page,
-            @RequestParam int size,
+            @PathVariable("productId") Long productId,
+            @RequestParam("page") int page,
+            @RequestParam("size") int size,
             HttpServletRequest request
     ) {
         Long userId = (Long) request.getAttribute("userId");
         PageRequest pageRequest = PageRequest.of(page, size);
-        return reviewService.getReviewList(pageRequest, productId, userId);
+        SliceImpl<GetReviewResDto> sliceList = reviewService.getReviewList(pageRequest, productId, userId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ListResDto(
+                        new PageResDto(
+                                (long) sliceList.getNumberOfElements(), // 현재 페이지 요소 개수
+                                sliceList.hasNext(), // 다음 페이지 존재 여부
+                                sliceList.isFirst(), // 첫 번째 페이지 여부
+                                sliceList.isLast() //마지막 페이지 여부
+                        ),
+                        sliceList.getContent()
+                ));
     }
 
     @GetMapping("/{productId}/new")
@@ -81,13 +97,25 @@ public class ReviewController {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<?> getReviewListByNonUser(
-            @PathVariable Long productId,
-            @RequestParam int page,
-            @RequestParam int size
+            @PathVariable("productId") Long productId,
+            @RequestParam("page") int page,
+            @RequestParam("size") int size
     ) {
         Long userId = 0L; //비회원으로 체크
         PageRequest pageRequest = PageRequest.of(page, size);
-        return reviewService.getReviewList(pageRequest, productId, userId);
+        SliceImpl<GetReviewResDto> sliceList = reviewService.getReviewList(pageRequest, productId, userId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ListResDto(
+                        new PageResDto(
+                                (long) sliceList.getNumberOfElements(), // 현재 페이지 요소 개수
+                                sliceList.hasNext(), // 다음 페이지 존재 여부
+                                sliceList.isFirst(), // 첫 번째 페이지 여부
+                                sliceList.isLast() //마지막 페이지 여부
+                        ),
+                        sliceList.getContent()
+                ));
     }
 
     @Auth
@@ -102,13 +130,25 @@ public class ReviewController {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<?> getMyReviewList(
-            @RequestParam int page,
-            @RequestParam int size,
+            @RequestParam("page") int page,
+            @RequestParam("size") int size,
             HttpServletRequest request
     ) {
         Long userId = (Long) request.getAttribute("userId");
         PageRequest pageRequest = PageRequest.of(page, size);
-        return reviewService.getMyReviewList(pageRequest, userId);
+        SliceImpl<GetMyReviewResDto> sliceList =  reviewService.getMyReviewList(pageRequest, userId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ListResDto(
+                        new PageResDto(
+                                (long) sliceList.getNumberOfElements(), // 현재 페이지 요소 개수
+                                sliceList.hasNext(), // 다음 페이지 존재 여부
+                                sliceList.isFirst(), // 첫 번째 페이지 여부
+                                sliceList.isLast() //마지막 페이지 여부
+                        ),
+                        sliceList.getContent()
+                ));
     }
 
     @Auth
@@ -125,7 +165,8 @@ public class ReviewController {
             @RequestPart(value = "reviewImages", required = false) List<MultipartFile> uploadImages,
             HttpServletRequest request){
         Long userId = (Long) request.getAttribute("userId");
-        return reviewService.updateReview(addReviewReqDto, uploadImages, userId);
+        reviewService.updateReview(addReviewReqDto, uploadImages, userId);
+        return ResponseEntity.ok(new CommonResDto("리뷰 수정에 성공했습니다."));
     }
 
     @Auth
@@ -140,10 +181,11 @@ public class ReviewController {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<?> deleteReview(
-            @PathVariable Long reviewId,
+            @PathVariable("reviewId") Long reviewId,
             HttpServletRequest request
     ) {
         Long userId = (Long) request.getAttribute("userId");
-        return reviewService.deleteReview(reviewId, userId);
+        reviewService.deleteReview(reviewId, userId);
+        return ResponseEntity.ok(new CommonResDto("리뷰 삭제에 성공했습니다."));
     }
 }

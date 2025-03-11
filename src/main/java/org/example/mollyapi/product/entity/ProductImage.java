@@ -5,9 +5,6 @@ import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

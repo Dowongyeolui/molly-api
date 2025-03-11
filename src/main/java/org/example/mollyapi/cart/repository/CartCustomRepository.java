@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface CartCustomRepository {
     List<CartInfoDto> getCartInfo(Long userId);
+    boolean countByUserUserId(Long userId);
 }

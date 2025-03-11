@@ -6,7 +6,6 @@ import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
 
 @Entity
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter

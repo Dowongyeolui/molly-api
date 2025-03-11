@@ -7,3 +7,4 @@ springdoc:
 spring:
   profiles:
     include: secret
+

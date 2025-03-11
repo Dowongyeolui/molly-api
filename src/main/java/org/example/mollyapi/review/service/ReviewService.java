@@ -2,13 +2,10 @@ package org.example.mollyapi.review.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.client.ImageClient;
-import org.example.mollyapi.common.dto.CommonResDto;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.order.entity.OrderDetail;
 import org.example.mollyapi.order.repository.OrderDetailRepository;
 import org.example.mollyapi.product.dto.UploadFile;
-import org.example.mollyapi.product.dto.response.ListResDto;
-import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.common.enums.ImageType;
 import org.example.mollyapi.product.repository.ProductRepository;
@@ -26,8 +23,6 @@ import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,7 +53,7 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public ResponseEntity<?> registerReview(
+    public void registerReview(
             AddReviewReqDto addReviewReqDto, // Long orderDetailId, String content
             List<MultipartFile> uploadImages,
             Long userId
@@ -95,8 +90,6 @@ public class ReviewService {
         saveReviewImages(newReview, uploadImages);
 
         reviewRep.save(newReview);
-
-        return ResponseEntity.ok(new CommonResDto("리뷰 등록에 성공했습니다."));
     }
 
     /**
@@ -107,7 +100,7 @@ public class ReviewService {
      * @return reviewResDtoList 리뷰 정보를 담은 DtoList
      * */
     @Transactional(readOnly = true)
-    public ResponseEntity<?> getReviewList(Pageable pageable, Long productId, Long userId) {
+    public SliceImpl<GetReviewResDto> getReviewList(Pageable pageable, Long productId, Long userId) {
         // 상품 존재 여부 체크
         boolean existsProduct = productRep.existsById(productId);
         if(!existsProduct) throw new CustomException(NOT_EXISTS_PRODUCT);
@@ -134,29 +127,17 @@ public class ReviewService {
         }
 
         // Slice 형태로 리뷰 리스트 생성
-        SliceImpl<GetReviewResDto> sliceList = new SliceImpl<>(reviewResDtoList, pageable, hasNext);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ListResDto(
-                        new PageResDto(
-                                (long) sliceList.getNumberOfElements(), // 현재 페이지 요소 개수
-                                sliceList.hasNext(), // 다음 페이지 존재 여부
-                                sliceList.isFirst(), // 첫 번째 페이지 여부
-                                sliceList.isLast() //마지막 페이지 여부
-                        ),
-                        sliceList.getContent()
-                ));
+        return new SliceImpl<>(reviewResDtoList, pageable, hasNext);
     }
 
     /**
      * 사용자 본인이 작성한 리뷰 조회
      * @param pageable 페이지 처리에 필요한 정보를 담는 인터페이스
      * @param userId 사용자 PK
-     * @return myReviewResDtoList 사용자 본인이 작성한 리뷰 정보를 담은 DtoList
+     * @return SliceImpl<GetMyReviewResDto> 사용자 본인이 작성한 리뷰 정보를 담은 DtoList
      * */
     @Transactional(readOnly = true)
-    public ResponseEntity<?> getMyReviewList(Pageable pageable, Long userId) {
+    public SliceImpl<GetMyReviewResDto> getMyReviewList(Pageable pageable, Long userId) {
         // 가입된 사용자 여부 체크
         getUserInfo(userId);
 
@@ -182,19 +163,7 @@ public class ReviewService {
         }
 
         // Slice 형태로 리뷰 리스트 생성
-        SliceImpl<GetMyReviewResDto> sliceList = new SliceImpl<>(myReviewResDtoList, pageable, hasNext);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ListResDto(
-                        new PageResDto(
-                                (long) sliceList.getNumberOfElements(), // 현재 페이지 요소 개수
-                                sliceList.hasNext(), // 다음 페이지 존재 여부
-                                sliceList.isFirst(), // 첫 번째 페이지 여부
-                                sliceList.isLast() //마지막 페이지 여부
-                        ),
-                        sliceList.getContent()
-                ));
+        return new SliceImpl<>(myReviewResDtoList, pageable, hasNext);
     }
 
     /**
@@ -204,7 +173,7 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public ResponseEntity<?> updateReview(
+    public void updateReview(
             AddReviewReqDto addReviewReqDto, // Long reviewId, String content
             List<MultipartFile> uploadImages,
             Long userId
@@ -236,8 +205,6 @@ public class ReviewService {
         }
 
         if(!flag) throw new CustomException(NOT_CHANGED);
-
-        return ResponseEntity.ok(new CommonResDto("리뷰 수정에 성공했습니다."));
     }
 
     /**
@@ -246,12 +213,12 @@ public class ReviewService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public ResponseEntity<?> deleteReview(Long reviewId, Long userId) {
+    public void deleteReview(Long reviewId, Long userId) {
         // 가입된 사용자 여부 체크
         getUserInfo(userId);
 
         // 해당하는 리뷰가 있다면
-        Review review = reviewRep.findByIdAndUserUserId(reviewId, userId)
+        Review review = reviewRep.findByIdAndUserUserIdAndIsDeleted(reviewId, userId, false)
                 .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
 
         // 리뷰 삭제 여부 변경
@@ -263,8 +230,6 @@ public class ReviewService {
 
         // 리뷰와 연결된 좋아요 삭제
         reviewLikeRep.deleteAllByReviewId(reviewId);
-
-        return ResponseEntity.ok(new CommonResDto("리뷰 삭제에 성공했습니다."));
     }
 
     /**

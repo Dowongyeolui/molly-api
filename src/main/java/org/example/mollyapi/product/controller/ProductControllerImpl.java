@@ -9,20 +9,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.product.dto.BrandSummaryDto;
 import org.example.mollyapi.product.dto.ProductFilterCondition;
 import org.example.mollyapi.product.dto.request.ProductFilterConditionReqDto;
+import org.example.mollyapi.product.dto.request.ProductReqDto;
 import org.example.mollyapi.product.dto.response.ListResDto;
 import org.example.mollyapi.product.dto.response.PageResDto;
-import org.example.mollyapi.product.entity.Category;
-import org.example.mollyapi.product.enums.OrderBy;
-import org.example.mollyapi.product.service.CategoryService;
-import org.example.mollyapi.product.service.ProductService;
-import org.example.mollyapi.product.dto.request.ProductReqDto;
 import org.example.mollyapi.product.dto.response.ProductResDto;
+import org.example.mollyapi.product.entity.Category;
+import org.example.mollyapi.product.service.CategoryService;
+import org.example.mollyapi.product.service.ProductReadService;
+import org.example.mollyapi.product.service.ProductService;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.PageRequest;
@@ -32,7 +31,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,6 +43,7 @@ public class ProductControllerImpl {
 
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final ProductReadService productReadService;
 
     @GetMapping
     @Operation(summary = "상품 정보 목록",
@@ -68,7 +67,7 @@ public class ProductControllerImpl {
         PageRequest pageRequest = PageRequest.of(page, size);
 
         ProductFilterCondition condition = convertToProductFilterCondition(conditionReqDto, null);
-        Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
+        Slice<ProductResDto> products = productReadService.getAllProducts(condition, pageRequest);
 
         if (products.getContent().isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -104,7 +103,7 @@ public class ProductControllerImpl {
         Long userId = (Long) request.getAttribute("userId");
 
         ProductFilterCondition condition = convertToProductFilterCondition(conditionReqDto, userId);
-        Slice<ProductResDto> products = productService.getAllProducts(condition, pageRequest);
+        Slice<ProductResDto> products = productReadService.getAllProducts(condition, pageRequest);
 
         if (products.getContent().isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -150,7 +149,7 @@ public class ProductControllerImpl {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<ProductResDto> getProduct(@PathVariable Long productId) {
-        ProductResDto productResDto = productService.getProductById(productId).orElse(null);
+        ProductResDto productResDto = productReadService.getProductById(productId).orElse(null);
         if (productResDto == null) {
             return ResponseEntity.noContent().build();
         }
@@ -175,7 +174,7 @@ public class ProductControllerImpl {
     ) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        Slice<BrandSummaryDto> brands = productService.getPopularBrand(pageRequest);
+        Slice<BrandSummaryDto> brands = productReadService.getPopularBrand(pageRequest);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)

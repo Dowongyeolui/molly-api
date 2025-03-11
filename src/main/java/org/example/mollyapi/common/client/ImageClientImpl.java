@@ -1,9 +1,9 @@
 package org.example.mollyapi.common.client;
 
 import lombok.Data;
+import org.example.mollyapi.common.enums.ImageType;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.product.dto.UploadFile;
-import org.example.mollyapi.common.enums.ImageType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;

@@ -1,16 +1,12 @@
 package org.example.mollyapi.payment.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.Response;
-import org.example.mollyapi.address.dto.AddressRequestDto;
 import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.cart.service.CartService;
-import org.example.mollyapi.common.config.WebClientUtil;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.common.exception.error.impl.UserError;
@@ -23,10 +19,9 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.dto.request.PaymentCancelReqDto;
 import org.example.mollyapi.payment.dto.request.TossCancelReqDto;
-import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
-import org.example.mollyapi.payment.dto.response.PaymentResDto;
-import org.example.mollyapi.payment.dto.response.TossCancelResDto;
 import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
+import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
+import org.example.mollyapi.payment.dto.response.TossCancelResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.repository.PaymentRepository;
@@ -45,15 +40,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static java.lang.Math.toIntExact;
 
 @Service
 @Slf4j

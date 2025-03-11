@@ -1,6 +1,5 @@
 package org.example.mollyapi.payment.repository;
 
-import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.payment.entity.Payment;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
