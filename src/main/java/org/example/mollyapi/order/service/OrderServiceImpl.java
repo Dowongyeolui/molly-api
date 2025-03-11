@@ -9,7 +9,6 @@ import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.OrderError;
-import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
@@ -21,7 +20,6 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
-import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
@@ -36,12 +34,9 @@ import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import static org.example.mollyapi.common.exception.error.impl.OrderError.*;
 
@@ -68,6 +63,7 @@ public class OrderServiceImpl implements OrderService{
     private final ReviewRepository reviewRepository;
     private final CartRepository cartRepository;
     private final PaymentService paymentService;
+    private final OrderStockService validationService;
 
 
     /**
@@ -246,7 +242,7 @@ public class OrderServiceImpl implements OrderService{
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
 
         /// 2. 주문 조회
-        Order order = orderRepository.findByTossOrderId(tossOrderId)
+        Order order = orderRepository.findByTossOrderIdWithDetails(tossOrderId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
 
         // 3. 결제 금액 검증
@@ -269,8 +265,9 @@ public class OrderServiceImpl implements OrderService{
         // 7. 재고 검증 및 차감 (tx2)
         paymentInfoResDto.ifPresentOrElse(
                 payment -> log.info("최근 결제 내역 존재: {}", payment),
-                () -> validateBeforePayment(user, order, point, deliveryInfo)
+                () -> validationService.validateBeforePayment(order.getId())
         );
+//        validationService.validateBeforePayment(user, order, point, deliveryInfo);
 
         // 8. 장바구니에서 주문한 상품 삭제
         for (OrderDetail orderDetail : order.getOrderDetails()) {
@@ -311,28 +308,6 @@ public class OrderServiceImpl implements OrderService{
         return PaymentResDto.from(payment);
     }
 
-    @Transactional
-    public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
-        System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
-        // 1. 재고 확인 및 차감 (비관적 락)
-        for (OrderDetail detail : order.getOrderDetails()) {
-//            System.out.println("getOrderDetail: " + detail.getProductName());
-            ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
-
-            // 재고 부족 체크
-            if (productItem.getQuantity() < detail.getQuantity()) {
-                log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}", productItem.getId(), detail.getQuantity(), productItem.getQuantity());
-                throw new IllegalArgumentException("재고가 부족하여 결제를 진행할 수 없습니다.");
-            }
-
-            // 재고 차감
-            productItem.decreaseStock(detail.getQuantity());
-            productItemRepository.save(productItem);
-            System.out.println("----------------------------------재고 트랜잭션 커밋----------------------------------");
-        }
-    }
-
 
     private Delivery createDelivery(DeliveryReqDto deliveryInfo) {
         return Delivery.from(deliveryInfo);
@@ -361,7 +336,7 @@ public class OrderServiceImpl implements OrderService{
 
                 // 결제 성공 시 주문 업데이트
                 order.addPayment(retriedPayment);
-                order.updatePaymentInfo();
+//                order.updatePaymentInfo();
                 order.updateStatus(OrderStatus.SUCCEEDED);
                 orderRepository.save(order);
                 System.out.println("----------------------------------재시도 트랜잭션 종료----------------------------------");
@@ -406,7 +381,7 @@ public class OrderServiceImpl implements OrderService{
 
         if (retriedPayment.getStatus() == PaymentStatus.APPROVED) {
             order.addPayment(retriedPayment);
-            order.updatePaymentInfo();
+//            order.updatePaymentInfo();
             order.updateStatus(OrderStatus.SUCCEEDED);
             orderRepository.save(order);
         } else {
@@ -664,14 +639,4 @@ public class OrderServiceImpl implements OrderService{
                 .mapToLong(d -> d.getPrice() * d.getQuantity())
                 .sum();
     }
-
-
-    private void tx23(){
-        tx24();
-    }
-    @Transactional
-    public void tx24(){
-
-    }
-
 }
