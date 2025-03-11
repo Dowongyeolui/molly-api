@@ -19,6 +19,7 @@ import org.example.mollyapi.product.dto.response.ListResDto;
 import org.example.mollyapi.product.dto.response.PageResDto;
 import org.example.mollyapi.product.dto.response.ProductResDto;
 import org.example.mollyapi.product.entity.Category;
+import org.example.mollyapi.product.service.BrandService;
 import org.example.mollyapi.product.service.CategoryService;
 import org.example.mollyapi.product.service.ProductReadService;
 import org.example.mollyapi.product.service.ProductService;
@@ -44,6 +45,7 @@ public class ProductControllerImpl {
     private final ProductService productService;
     private final CategoryService categoryService;
     private final ProductReadService productReadService;
+    private final BrandService brandService;
 
     @GetMapping
     @Operation(summary = "상품 정보 목록",
@@ -120,17 +122,16 @@ public class ProductControllerImpl {
 
         List<Long> categoryIdList = getCategoryIdListByCategoryPathString(conditionReqDto.categories());
 
-        return new ProductFilterCondition(
-                conditionReqDto.colorCode()!=null?Arrays.asList(conditionReqDto.colorCode().split(",")):null,
-                conditionReqDto.productSize()!=null?Arrays.asList(conditionReqDto.productSize().split(",")):null,
-                categoryIdList,
-                conditionReqDto.brandName(),
-                conditionReqDto.priceGoe(),
-                conditionReqDto.priceLt(),
-                userId,
-                conditionReqDto.orderBy(),
-                conditionReqDto.excludeSoldOut()
-        );
+        return ProductFilterCondition.builder()
+                .colorCode(conditionReqDto.colorCode() != null ? Arrays.asList(conditionReqDto.colorCode().split(",")) : null)
+                .size(conditionReqDto.productSize() != null ? Arrays.asList(conditionReqDto.productSize().split(",")) : null)
+                .categoryId(categoryIdList)
+                .brandName(conditionReqDto.brandName())
+                .priceGoe(conditionReqDto.priceGoe())
+                .priceLt(conditionReqDto.priceLt())
+                .sellerId(userId)
+                .orderBy(conditionReqDto.orderBy())
+                .build();
     }
 
     private List<Long> getCategoryIdListByCategoryPathString(String categories) {
@@ -174,7 +175,7 @@ public class ProductControllerImpl {
     ) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        Slice<BrandSummaryDto> brands = productReadService.getPopularBrand(pageRequest);
+        Slice<BrandSummaryDto> brands = brandService.getPopularBrand(pageRequest);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)

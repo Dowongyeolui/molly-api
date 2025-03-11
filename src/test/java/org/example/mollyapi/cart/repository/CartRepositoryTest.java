@@ -54,30 +54,17 @@ public class CartRepositoryTest {
     EntityManager entityManager;
     private JPAQueryFactory queryFactory;
 
-    private User testUser;
-    private Product testProduct;
-    private ProductImage testImage;
-    private ProductItem testItem;
-    private Cart testCart;
-
-    @BeforeEach
-    void setUp() {
-        testUser = createAndSaveUser();
-        testProduct = createAndSaveProduct();
-        testImage = createAndSaveProductImage(testProduct);
-        testItem = createAndSaveProductItem("S", testProduct);
-        testCart = createAndSaveCart(2L, testUser, testItem);
-    }
-
     @DisplayName("장바구니에 동일한 상품이 담겨있는 않은 지 조회한다.")
     @Test
-    void VerifyProductItemNotExistInCart() {
+    void findProductItemNotExistInCart() {
         //given
         Long userId = 1L;
-        Long itemId = testItem.getId();
+        Product testProduct = createAndSaveProduct();
+        ProductImage testImage = createAndSaveProductImage(testProduct);
+        ProductItem testItem = createAndSaveProductItem("S", testProduct);
 
         //when
-        Cart cart = cartRepository.findByProductItemIdAndUserUserId(itemId, userId);
+        Cart cart = cartRepository.findByProductItemIdAndUserUserId(testItem.getId(), userId);
 
         //then
         assertThat(cart).isNull();
@@ -85,18 +72,22 @@ public class CartRepositoryTest {
 
     @DisplayName("장바구니에 동일한 상품이 담겨있는 지를 조회한다.")
     @Test
-    void VerifyProductItemExistInCart() {
+    void findProductItemExistInCart() {
         //given
-        Long userId = testUser.getUserId();
-        Long itemId = testItem.getId();
+        User testUser = createAndSaveUser();
+        Product testProduct = createAndSaveProduct();
+        ProductImage testImage = createAndSaveProductImage(testProduct);
+        ProductItem testItem = createAndSaveProductItem("S", testProduct);
+        Cart testCart = createAndSaveCart(2L, testUser, testItem);
 
         //when
-        Cart cart = cartRepository.findByProductItemIdAndUserUserId(itemId, userId);
+        Cart cart = cartRepository.findByProductItemIdAndUserUserId(testItem.getId(), testUser.getUserId());
 
         //then
         assertThat(cart).isNotNull();
-        assertThat(cart.getProductItem()).isEqualTo(testItem);
-        assertThat(cart.getUser()).isEqualTo(testUser);
+        assertThat(cart.getProductItem()).isEqualTo(testCart.getProductItem());
+        assertThat(cart.getCartId()).isEqualTo(testCart.getCartId());
+        assertThat(cart.getUser().getUserId()).isEqualTo(testUser.getUserId());
     }
 
     @ParameterizedTest
@@ -114,16 +105,19 @@ public class CartRepositoryTest {
     @Test
     void findByCartIdAndUserId_Success() {
         //given
-        Long userId = testUser.getUserId();
-        Long cartId = testCart.getCartId();
+        User testUser = createAndSaveUser();
+        Product testProduct = createAndSaveProduct();
+        ProductImage testImage = createAndSaveProductImage(testProduct);
+        ProductItem testItem = createAndSaveProductItem("S", testProduct);
+        Cart testCart = createAndSaveCart(3L, testUser, testItem);
 
         //when
-        Optional<Cart> cart = cartRepository.findByCartIdAndUserUserId(cartId, userId);
+        Optional<Cart> cart = cartRepository.findByCartIdAndUserUserId(testCart.getCartId(), testUser.getUserId());
 
         //then
         assertThat(cart).isPresent();
         assertThat(cart.get().getUser()).isEqualTo(testUser);
-        assertThat(cart.get().getCartId()).isEqualTo(cartId);
+        assertThat(cart.get().getCartId()).isEqualTo(testCart.getCartId());
     }
 
     @DisplayName("존재하지 않는 장바구니 내역 상세를 조회한다.")
@@ -144,20 +138,24 @@ public class CartRepositoryTest {
     @Test
     void findAllCartInfoByUserId() {
         //given
-        Long userId = testUser.getUserId();
+        User testUser = createAndSaveUser();
+        Product testProduct = createAndSaveProduct();
+        ProductImage testImage = createAndSaveProductImage(testProduct);
+        ProductItem firstItem = createAndSaveProductItem("L", testProduct);
         ProductItem secondItem = createAndSaveProductItem("L", testProduct);
+        Cart firstCart = createAndSaveCart(2L, testUser, firstItem);
         Cart secondCart = createAndSaveCart(3L, testUser, secondItem);
 
         //when
-        List<CartInfoDto> cartInfoList = cartRepository.getCartInfo(userId);
+        List<CartInfoDto> cartInfoList = cartRepository.getCartInfo(testUser.getUserId());
 
         //then
         assertThat(cartInfoList).hasSize(2);
         assertThat(cartInfoList)
                 .extracting(CartInfoDto::cartId, CartInfoDto::itemId, CartInfoDto::quantity)
-                .contains(
+                .containsExactly(
                         tuple(secondCart.getCartId(), secondItem.getId(), secondCart.getQuantity()),
-                        tuple(testCart.getCartId(), testCart.getProductItem().getId(), testCart.getQuantity())
+                        tuple(firstCart.getCartId(), firstCart.getProductItem().getId(), firstCart.getQuantity())
                 );
     }
 

@@ -2,9 +2,11 @@ package org.example.mollyapi.product.repository;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.example.mollyapi.product.dto.*;
 import org.example.mollyapi.product.enums.OrderBy;
+import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -26,31 +28,39 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
     @Override
     public Slice<BrandSummaryDto> getTotalViewGroupByBrandName(Pageable pageable) {
-        List<BrandSummaryDto> content = queryFactory.select(
-                new QBrandSummaryDto(
-                        productImage.url.max().as("brandThumbnail"),
-                        product.brandName,
-                        product.count(),
-                        product.viewCount.sum().as("viewCount")))
+        if (pageable == null) { pageable  = Pageable.unpaged(); }
+
+        JPAQuery<BrandSummaryDto> query = queryFactory.select(
+                        new QBrandSummaryDto(
+                                productImage.url.max().as("brandThumbnail"),
+                                product.brandName,
+                                product.count(),
+                                product.viewCount.sum().as("viewCount")))
                 .from(productImage)
                 .join(productImage.product, product)
                 .on(productImage.isRepresentative.isTrue())
                 .groupBy(product.brandName)
-                .orderBy(product.viewCount.sum().desc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1)
-                .fetch();
+                .orderBy(product.viewCount.sum().desc());
+
+        if (pageable.isPaged()) {
+            query.offset(pageable.getOffset())
+                    .limit(pageable.getPageSize() + 1);
+        }
+        List<BrandSummaryDto> content = query.fetch();
+
         boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
+        if (pageable.isPaged() && content.size() > pageable.getPageSize()) {
             content.remove(pageable.getPageSize());
             hasNext = true;
         }
-        return new SliceImpl<BrandSummaryDto>(content, pageable, hasNext);
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     @Override
     public Slice<ProductAndThumbnailDto> findByCondition(ProductFilterCondition condition, Pageable pageable) {
-        List<ProductAndThumbnailDto> content = queryFactory
+        if (pageable == null) pageable = Pageable.unpaged();
+
+        JPAQuery<ProductAndThumbnailDto> query = queryFactory
                 .select(new QProductAndThumbnailDto(
                         product.id,
                         product.category.id.as("categoryId"),
@@ -58,37 +68,44 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
                         product.productName,
                         product.price,
                         product.description,
-                        productImage.url,
-                        productImage.filename,
+                        productItem.colorCode.max().as("colorCode"),
+                        productItem.size.max().as("size"),
+                        productItem.quantity.max().as("quantity"),
+                        productImage.url.max().as("url"),
+                        productImage.filename.max().as("filename"),
                         product.createdAt,
                         product.viewCount,
                         product.purchaseCount
                 ))
-                .distinct()
                 .from(productItem)
                 .join(productItem.product, product)
                 .leftJoin(productImage).on(productImage.product.eq(product).and(productImage.isRepresentative.eq(true)))
                 .where(
-                        colorCodeEq(condition.getColorCode()),
-                        sizeEq(condition.getSize()),
-                        categoryIdEq(condition.getCategoryId()),
-                        brandNameEq(condition.getBrandName()),
-                        priceGoe(condition.getPriceGoe()),
-                        priceLt(condition.getPriceLt()),
-                        sellerIdEq(condition.getSellerId()),
-                        excludeSoldOut(condition.getExcludeSoldOut())
+                        condition != null ? colorCodeEq(condition.colorCode()) : null,
+                        condition != null ? sizeEq(condition.size()) : null,
+                        condition != null ? categoryIdEq(condition.categoryId()) : null,
+                        condition != null ? brandNameEq(condition.brandName()) : null,
+                        condition != null ? priceGoe(condition.priceGoe()) : null,
+                        condition != null ? priceLt(condition.priceLt()) : null,
+                        condition != null ? sellerIdEq(condition.sellerId()) : null,
+                        condition != null ? excludeSoldOut(condition.excludeSoldOut()) : null
                 )
-                .orderBy(orderByCondition(condition.getOrderBy()))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1)
-                .fetch();
+                .orderBy(orderByCondition(condition != null ? condition.orderBy() : null))
+                .groupBy(product.id);
+
+        if (pageable.isPaged()) {
+            query.offset(pageable.getOffset());
+            query.limit(pageable.getPageSize() + 1);
+        }
+
+        List<ProductAndThumbnailDto> content = query.fetch();
 
         boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
+        if (pageable.isPaged() && content.size() > pageable.getPageSize()) {
             content.remove(pageable.getPageSize());
             hasNext = true;
         }
-        return new SliceImpl<ProductAndThumbnailDto>(content, pageable, hasNext);
+        return new SliceImpl<>(content, pageable, hasNext);
     }
     private BooleanExpression colorCodeEq(List<String> colorCode) {
         return colorCode != null && !colorCode.isEmpty()? productItem.colorCode.in(colorCode): null;
@@ -125,7 +142,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
     private OrderSpecifier<?> orderByCondition(OrderBy orderBy) {
         if (orderBy != null) {
             return switch (orderBy) {
-                case CREATED_AT -> product.category.createdAt.desc();
+                case CREATED_AT -> product.createdAt.desc();
                 case VIEW_COUNT -> product.viewCount.desc();
                 case PURCHASE_COUNT -> product.purchaseCount.desc();
                 case PRICE_DESC ->  product.price.desc();
