@@ -71,21 +71,19 @@ public class PaymentServiceImpl implements PaymentService {
     /*
         결제 요청 실행 (API 호출 및 결제 데이터 저장)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public Payment processPayment(Long userId,
                                   PaymentConfirmReqDto requestDto) {
         System.out.println("----------------------------------결제 트랜잭션 시작----------------------------------");
 
         // 1. 결제 엔티티 생성
-        Payment payment = createPayment(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount(), PaymentStatus.PENDING);
+        Payment payment = createOrGetPayment(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount());
 
         // 2. toss payments API 호출
         ResponseEntity<TossConfirmResDto> response = tossPaymentApi(new TossConfirmReqDto(requestDto.tossOrderId(),
                 requestDto.paymentKey(),
                 requestDto.amount()));
 
-
-        paymentRepository.save(payment);
 
         // 3. 응답 검증
         // pending -> 자동 재시도, fail -> 수동 재시도, approve -> 완료
@@ -94,6 +92,7 @@ public class PaymentServiceImpl implements PaymentService {
             case "400" -> payment.failPayment("결제 실패");
             case "500" -> payment.pendingPayment();
         }
+        paymentRepository.save(payment);
 
         System.out.println("----------------------------------결제 트랜잭션 종료----------------------------------");
         return payment;
@@ -103,23 +102,32 @@ public class PaymentServiceImpl implements PaymentService {
         결제 요청 생성
      */
     @Override
-    public Payment createPayment(Long userId, Long orderId, String tossOrderId,
-                                 String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
+    public Payment createOrGetPayment(Long userId, Long orderId, String tossOrderId,
+                                 String paymentKey, String paymentType, Long amount) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new CustomException(PaymentError.ORDER_NOT_FOUND));
 
-        Payment payment = Payment.create(user, order, tossOrderId, paymentKey, paymentType, amount, PaymentStatus.PENDING);
-        paymentRepository.save(payment);
-        return payment;
+        Optional<Payment> existingPayment = paymentRepository.findByPaymentKey(paymentKey);
+        if (existingPayment.isPresent()){
+            Payment payment = existingPayment.get();
+            switch (payment.getStatus()) {
+                case APPROVED -> {
+                    throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
+                }
+                case PENDING, FAILED -> {
+                    return payment;
+                }
+            }
+        }
+        return Payment.create(user, order, tossOrderId, paymentKey, paymentType, amount);
     }
 
     /*
         Toss 결제 요청 API 호출 (결제 승인)
      */
-    @Override
-    public ResponseEntity<TossConfirmResDto> tossPaymentApi(TossConfirmReqDto tossConfirmReqDto) {
+    private ResponseEntity<TossConfirmResDto> tossPaymentApi(TossConfirmReqDto tossConfirmReqDto) {
         return paymentWebClientUtil.confirmPayment(tossConfirmReqDto, apiKey);
     }
 
@@ -150,12 +158,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional
     public Payment retryPayment(Long userId, String tossOrderId, String paymentKey) {
-        Payment payment = paymentRepository.findTopLatestPaymentByOrderId(tossOrderId)
-                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND));
+//        Payment payment = paymentRepository.findTopLatestPaymentByOrderId(tossOrderId)
+//                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND));
+        Payment payment = findPaymentByPaymentKey(paymentKey);
 
-        if (!payment.canRetry()) {
-            throw new IllegalStateException("최대 결제 재시도 횟수를 초과했습니다.");
-        }
+        payment.increaseRetryCount();
 
         // 기존 결제 정보를 기반으로 새로운 결제 요청 생성
         PaymentConfirmReqDto retryRequest = new PaymentConfirmReqDto(
@@ -185,7 +192,7 @@ public class PaymentServiceImpl implements PaymentService {
         return String.valueOf(statusValue); // 1xx, 3xx, 5xx 등은 원래 값 유지
     }
 
-    public <T> boolean validateResponse(ResponseEntity<T> response) {
+    private <T> boolean validateResponse(ResponseEntity<T> response) {
         return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
     }
 

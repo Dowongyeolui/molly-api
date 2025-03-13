@@ -62,21 +62,16 @@ public class Payment extends Base {
 
     private static final int MAX_RETRY = 3;  // 최대 재시도 횟수
 
-    public boolean canRetry() {
-        return this.retryCount < MAX_RETRY;
-    }
-
-    public boolean increaseRetryCount() {
+    public void increaseRetryCount() {
         if (this.retryCount >= MAX_RETRY) {
-            return false; // 재시도 불가능
+            throw new CustomException(PaymentError.PAYMENT_RETRY_EXCEEDED);
         }
         this.retryCount++;
-        return true; // 재시도 가능
     }
 
     // 생성자 팩토리 메서드
     public static Payment create(User user, Order order, String tossOrderId,
-                                 String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
+                                 String paymentKey, String paymentType, Long amount) {
         return Payment.builder()
                 .user(user)
                 .order(order)
@@ -84,7 +79,7 @@ public class Payment extends Base {
                 .paymentKey(paymentKey)
                 .paymentType(paymentType)
                 .amount(amount)
-                .paymentStatus(paymentStatus)
+                .paymentStatus(PaymentStatus.PENDING)
                 .paymentDate(LocalDateTime.now())
                 .build();
     }
@@ -92,9 +87,6 @@ public class Payment extends Base {
     public boolean failPayment(String failureReason) {
         if (this.paymentStatus != PaymentStatus.PENDING) {
             throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
-        }
-        if (!increaseRetryCount()) {
-            throw new CustomException(PaymentError.PAYMENT_RETRY_EXCEEDED);
         }
         this.paymentStatus = PaymentStatus.FAILED;
         this.failureReason = failureReason;
@@ -108,9 +100,6 @@ public class Payment extends Base {
         this.paymentStatus = PaymentStatus.CANCELED;
     }
 
-    public void updatePaymentStatus(PaymentStatus paymentStatus) {
-        this.paymentStatus = paymentStatus;
-    }
 
     public void successPayment() {
         this.paymentStatus = PaymentStatus.APPROVED;

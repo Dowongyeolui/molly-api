@@ -9,11 +9,9 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.entity.Payment;
-import org.example.mollyapi.payment.type.PaymentStatus;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.example.mollyapi.user.type.Sex;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,8 +151,7 @@ public class PaymentRepositoryTest {
                 order.getTossOrderId(),
                 paymentKey,
                 "NORMAL",
-                amount,
-                PaymentStatus.PENDING
+                amount
         );
     }
 
