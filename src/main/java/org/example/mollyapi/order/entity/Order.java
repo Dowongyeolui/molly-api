@@ -35,7 +35,6 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails = new ArrayList<>();
 
-
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "delivery_id")
     private Delivery delivery;
@@ -109,30 +108,39 @@ public class Order {
         this.totalAmount = totalAmount;
     }
 
+//    public void addPayment(Payment payment) {
+//        if (payment == null) return;
+//        this.payments.add(payment);
+//        this.orderedAt = payment.getPaymentDate();
+//    }
+//
+//    //결제한개밖에 등록안됨
+//    public void updatePaymentInfo() {
+//        payments.stream()
+//                .max(Comparator.comparing(Payment::getPaymentDate))
+//                .ifPresent(payment -> {
+//                    this.paymentId = payment.getPaymentKey();
+//                    this.paymentType = payment.getPaymentType();
+//                    this.paymentAmount = payment.getAmount();
+//                    this.pointUsage = payment.getPoint();
+//                    this.orderedAt = payment.getPaymentDate();
+//                });
+//    }
+
     public void addPayment(Payment payment) {
         if (payment == null) return;
-        this.payments.add(payment);
-        this.orderedAt = payment.getPaymentDate();
-    }
 
-    //결제한개밖에 등록안됨
-    public void updatePaymentInfo() {
-        payments.stream()
-                .max(Comparator.comparing(Payment::getPaymentDate))
-                .ifPresent(payment -> {
-                    this.paymentId = payment.getPaymentKey();
-                    this.paymentType = payment.getPaymentType();
-                    this.paymentAmount = payment.getAmount();
-                    this.pointUsage = payment.getPoint();
-                    this.orderedAt = payment.getPaymentDate();
-                });
+        this.payments.add(payment);
+        this.paymentId = payment.getPaymentKey();
+        this.paymentType = payment.getPaymentType();
+        this.paymentAmount = payment.getAmount();
+        this.pointUsage = payment.getPoint();
+        this.orderedAt = payment.getPaymentDate();
+        this.updateStatus(OrderStatus.SUCCEEDED); // ✅ 주문 상태 변경까지 포함
     }
 
     public void setDelivery(Delivery delivery) {
         this.delivery = delivery;
-        if (delivery != null) {
-            delivery.assignOrder(this);
-        }
     }
 
     public void setPointSave(int point) {

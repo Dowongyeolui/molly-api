@@ -1,0 +1,47 @@
+secret:
+  confirm-url: https://api.tosspayments.com/v1/payments/confirm
+  toss-url: https://api.tosspayments.com/v1/payments/
+  payment-api-key: test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6
+
+aes:
+  secret-key: Rhcekfflsrkaskan5Rhcekfflsrkask1
+
+password:
+  encode:
+    algorithm: PBKDF2WithHmacSHA1
+    iterations: 8524
+    keyLength: 128
+    saltAlgorithm: SHA-256
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:molly;MODE=MYSQL
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  server:
+    timezone: Asia/Seoul
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 40MB
+
+jjwt:
+  secret-key: YghJQDCgYOLtTKHH8TLtLdT9GaWQxE40ITOsGjGnc0Y=
+  expiration-time: 3600000
+
+file:
+  storage: http://persimmontree.ddns.net:8081/image
+
+logging:
+  level:
+    org.springframework.orm.jpa: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
+    org.springframework.orm.jpa.JpaTransactionManager: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
