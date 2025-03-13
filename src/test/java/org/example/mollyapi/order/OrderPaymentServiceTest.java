@@ -45,7 +45,6 @@ import org.mockito.MockedStatic;
 import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.Commit;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
@@ -106,9 +105,6 @@ public class OrderPaymentServiceTest {
     @Mock
     ReviewRepository reviewRepository;
 
-    @MockBean
-    AESUtil aesUtil;
-
 
     private User user;
     private Order order;
@@ -137,7 +133,7 @@ public class OrderPaymentServiceTest {
 
         // AESUtil Mocking
         MockedStatic<AESUtil> mockedStatic = mockStatic(AESUtil.class);
-        mockedStatic.when(() -> aesUtil.decryptWithSalt(anyString()))
+        mockedStatic.when(() -> AESUtil.decryptWithSalt(anyString()))
                 .thenReturn("0");
 
         // 배송 mocking
@@ -167,7 +163,7 @@ public class OrderPaymentServiceTest {
         DeliveryReqDto deliveryReqDto = new DeliveryReqDto(user.getName(),user.getCellPhone(),"11","11","11");
 
 
-        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService, aesUtil);
+        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService);
 
 
 //        assertThatThrownBy(() ->
@@ -221,7 +217,7 @@ public class OrderPaymentServiceTest {
 
         // AESUtil Mocking
         MockedStatic<AESUtil> mockedStatic = mockStatic(AESUtil.class);
-        mockedStatic.when(() -> aesUtil.decryptWithSalt(anyString()))
+        mockedStatic.when(() -> AESUtil.decryptWithSalt(anyString()))
                 .thenReturn("0");
 
         // 배송 mocking
@@ -251,7 +247,7 @@ public class OrderPaymentServiceTest {
         DeliveryReqDto deliveryReqDto = new DeliveryReqDto(user.getName(),user.getCellPhone(),"11","11","11");
 
 
-        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService, aesUtil);
+        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService);
 
         //when
         CustomException exception = assertThrows(
@@ -292,7 +288,7 @@ public class OrderPaymentServiceTest {
 
         // AESUtil Mocking
         MockedStatic<AESUtil> mockedStatic = mockStatic(AESUtil.class);
-        mockedStatic.when(() -> aesUtil.decryptWithSalt(anyString()))
+        mockedStatic.when(() -> AESUtil.decryptWithSalt(anyString()))
                 .thenReturn("0");
 
         // 배송 mocking
@@ -322,7 +318,7 @@ public class OrderPaymentServiceTest {
         DeliveryReqDto deliveryReqDto = new DeliveryReqDto(user.getName(),user.getCellPhone(),"11","11","11");
 
 
-        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService,aesUtil);
+        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService);
 
 
         //when
@@ -360,7 +356,7 @@ public class OrderPaymentServiceTest {
 
         // AESUtil Mocking
         MockedStatic<AESUtil> mockedStatic = mockStatic(AESUtil.class);
-        mockedStatic.when(() -> aesUtil.decryptWithSalt(anyString()))
+        mockedStatic.when(() -> AESUtil.decryptWithSalt(anyString()))
                 .thenReturn("0");
 
         // 배송 mocking
@@ -391,7 +387,7 @@ public class OrderPaymentServiceTest {
         DeliveryReqDto deliveryReqDto = new DeliveryReqDto(user.getName(),user.getCellPhone(),"11","11","11");
 
 
-        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService, aesUtil);
+        orderServiceImpl = new OrderServiceImpl(orderRepository, orderDetailRepository, productItemRepository, userRepository, paymentRepository, deliveryRepository, addressRepository, reviewRepository, cartRepository, paymentService);
 
 
         //when

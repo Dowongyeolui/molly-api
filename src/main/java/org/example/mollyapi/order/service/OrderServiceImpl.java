@@ -68,7 +68,7 @@ public class OrderServiceImpl implements OrderService{
     private final ReviewRepository reviewRepository;
     private final CartRepository cartRepository;
     private final PaymentService paymentService;
-    private final AESUtil aesUtil;
+    private final OrderStockService validationService;
 
 
     /**
@@ -265,7 +265,7 @@ public class OrderServiceImpl implements OrderService{
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
 
         /// 2. 주문 조회
-        Order order = orderRepository.findByTossOrderId(tossOrderId)
+        Order order = orderRepository.findByTossOrderIdWithDetails(tossOrderId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
 
         /// 3-1. 결제 정보 검증 추가
@@ -280,7 +280,7 @@ public class OrderServiceImpl implements OrderService{
         validateAmount(order.getTotalAmount(), amount);
 
         /// 4. 포인트 정보 복호화 및 검증, 차감 (tx1)
-        Integer pointUsage = Optional.ofNullable(aesUtil.decryptWithSalt(point))
+        Integer pointUsage = Optional.ofNullable(AESUtil.decryptWithSalt(point))
                 .map(Integer::parseInt)
                 .orElse(0); // 기본값 0 설정. NumberFormatException 방지
         validateUserPoint(user, pointUsage);
@@ -301,7 +301,7 @@ public class OrderServiceImpl implements OrderService{
         /// 7. 재고 검증 및 차감 (tx2)
         paymentInfoResDto.ifPresentOrElse(
                 payment -> log.info("최근 결제 내역 존재: {}", payment),
-                () -> validateBeforePayment(user, order, point, deliveryInfo)
+                () -> validationService.validateBeforePayment(order.getId())
         );
 
         /// 8. 장바구니에서 주문한 상품 삭제
@@ -342,21 +342,21 @@ public class OrderServiceImpl implements OrderService{
         return PaymentResDto.from(payment);
     }
 
+    /// 삭제
     @Transactional
     public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
         System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
         // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
-            ProductItem productItem = productItemRepository.findByIdWithLock(detail.getProductItem().getId())
+//            System.out.println("getOrderDetail: " + detail.getProductName());
+            ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
 
             // 재고 부족 체크
             if (productItem.getQuantity() < detail.getQuantity()) {
-                log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}",
-                        productItem.getId(), detail.getQuantity(), productItem.getQuantity());
-                throw new CustomException(OrderError.INSUFFICIENT_STOCK);
+                log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}", productItem.getId(), detail.getQuantity(), productItem.getQuantity());
+                throw new IllegalArgumentException("재고가 부족하여 결제를 진행할 수 없습니다.");
             }
-
 
             // 재고 차감
             productItem.decreaseStock(detail.getQuantity());
@@ -689,14 +689,4 @@ public class OrderServiceImpl implements OrderService{
                 .mapToLong(d -> d.getPrice() * d.getQuantity())
                 .sum();
     }
-
-
-    private void tx23(){
-        tx24();
-    }
-    @Transactional
-    public void tx24(){
-
-    }
-
 }

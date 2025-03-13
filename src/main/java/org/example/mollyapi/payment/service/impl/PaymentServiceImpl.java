@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -80,9 +81,10 @@ public class PaymentServiceImpl implements PaymentService {
     /*
         결제 요청 실행 (API 호출 및 결제 데이터 저장)
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Payment processPayment(Long userId,
                                   PaymentConfirmReqDto requestDto) {
+        System.out.println("----------------------------------결제 트랜잭션 시작----------------------------------");
 
         // 1. 결제 엔티티 생성
         Payment payment = createPayment(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount(), PaymentStatus.PENDING);
@@ -92,6 +94,9 @@ public class PaymentServiceImpl implements PaymentService {
                 requestDto.paymentKey(),
                 requestDto.amount()));
 
+
+        paymentRepository.save(payment);
+
         // 3. 응답 검증
         // pending -> 자동 재시도, fail -> 수동 재시도, approve -> 완료
         switch (getStatusCodeToString(response)) {
@@ -99,7 +104,8 @@ public class PaymentServiceImpl implements PaymentService {
             case "400" -> payment.failPayment("결제 실패");
             case "500" -> payment.pendingPayment();
         }
-        paymentRepository.save(payment);
+
+        System.out.println("----------------------------------결제 트랜잭션 종료----------------------------------");
         return payment;
     }
 
@@ -168,7 +174,7 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getPaymentKey(),
                 payment.getAmount(),
                 payment.getPaymentType(),
-                0// 포인트는 이미 차감되었으므로 0으로 설정
+                0// 포인트는 이미 차감되었으므로 0으로 설정 -> 결제 서비스에서 포인트차감이 아님
         );
         return processPayment(userId, retryRequest);
     }
