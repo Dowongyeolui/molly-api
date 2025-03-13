@@ -25,6 +25,9 @@ public interface ProductItemRepository extends JpaRepository<ProductItem, Long> 
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + itemId));
     }
 
+    @Query("SELECT p FROM ProductItem p WHERE p.id = :productId")
+    Optional<ProductItem> findWithOutLById(@Param("productId") Long productId);
+
     @Query("SELECT pi FROM ProductItem pi JOIN FETCH pi.product WHERE pi.id = :id")
     Optional<ProductItem> findByIdWithProduct(@Param("id") Long id);
 

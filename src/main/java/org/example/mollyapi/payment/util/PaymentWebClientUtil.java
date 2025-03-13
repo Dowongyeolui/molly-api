@@ -11,6 +11,7 @@ import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.TossCancelResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -46,8 +47,7 @@ public class PaymentWebClientUtil {
                     headers
             );
         } catch (WebClientResponseException e) {
-            handlePaymentError(e);
-            throw e;
+            return handlePaymentError(e);
         }
     }
 
@@ -72,7 +72,7 @@ public class PaymentWebClientUtil {
         }
     }
 
-    private void handlePaymentError(WebClientResponseException e) {
+    private ResponseEntity<TossConfirmResDto> handlePaymentError(WebClientResponseException e) {
         String errorBody = e.getResponseBodyAsString();
         HttpStatusCode status = e.getStatusCode();
 
@@ -81,7 +81,8 @@ public class PaymentWebClientUtil {
         String responseMessage = errorMessage != null ? errorMessage : "결제 요청 중 오류가 발생했습니다.";
 
         // 토스페이먼츠 오류는 동적으로 처리
-        throw new CustomException(status, responseMessage);
+        return ResponseEntity.status(status)
+                .body(null);
     }
 
     private String extractErrorMessage(String errorBody) {
