@@ -39,10 +39,6 @@ public class Delivery {
     @Column(nullable = false)
     private String addrDetail;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "FK_DELIVERY_ORDER"))
-    private Order order;
-
     public static Delivery from(DeliveryReqDto deliveryInfo) {
         return Delivery.builder()
                 .receiverName(deliveryInfo.receiver_name())
@@ -52,9 +48,5 @@ public class Delivery {
                 .addrDetail(deliveryInfo.addr_detail())
                 .status(DeliveryStatus.READY) // 기본값 설정
                 .build();
-    }
-
-    public void assignOrder(Order order) {
-        this.order = order;
     }
 }

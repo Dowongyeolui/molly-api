@@ -2,6 +2,7 @@ package org.example.mollyapi.product.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.client.ImageClient;
 import org.example.mollyapi.product.dto.*;
 import org.example.mollyapi.product.dto.response.*;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final CategoryService categoryService;
@@ -129,7 +131,7 @@ public class ProductServiceImpl implements ProductService {
         return product;
     }
 
-    private Product registerProductImages(Product product, List<MultipartFile> productImages) {
+    public Product registerProductImages(Product product, List<MultipartFile> productImages) {
 //        List<UploadFile> uploadFiles = fileStore.storeFiles(productImages);
         List<UploadFile> uploadFiles = imageClient.upload(ImageType.PRODUCT ,productImages);
         for (int i = 0; i < uploadFiles.size(); i++) {

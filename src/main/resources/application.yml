@@ -6,4 +6,4 @@ springdoc:
 
 spring:
   profiles:
-    include: secret
+    active: secret
