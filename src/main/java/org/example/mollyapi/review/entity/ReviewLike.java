@@ -27,7 +27,8 @@ public class ReviewLike extends Base {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
+//    @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
+    @JoinColumn(name = "review_id", nullable = false)
     @OnDelete(action= OnDeleteAction.CASCADE)
     private Review review;
 

@@ -9,6 +9,7 @@ import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.OrderError;
+import org.example.mollyapi.common.exception.error.impl.PaymentError;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
@@ -20,6 +21,7 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
+import org.example.mollyapi.payment.dto.request.PaymentRequestDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
@@ -34,9 +36,12 @@ import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import static org.example.mollyapi.common.exception.error.impl.OrderError.*;
 
@@ -105,41 +110,51 @@ public class OrderServiceImpl implements OrderService{
      */
     @Transactional
     public OrderResponseDto createOrder(Long userId, List<OrderRequestDto> orderRequests) {
+        if (userId == null) {
+            throw new IllegalArgumentException("주문을 생성하려면 유효한 사용자 ID가 필요합니다.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
 
-        // 결제용 주문 ID 생성
-        String tossOrderId = generateTossOrderId();
+        // 중복 주문 방지 - 같은 사용자에 진행 중인 주문이 있는지 확인
+        if (orderRepository.existsByUserIdAndStatus(userId, OrderStatus.PENDING)) {
+            throw new IllegalArgumentException("현재 진행 중인 주문이 있습니다.");
+        }
+
+        // 주문 요청 데이터 검증
+        for (OrderRequestDto req : orderRequests) {
+            if (req.cartId() == null && req.itemId() == null && req.quantity() == null) {
+                throw new IllegalArgumentException("cartId, itemId, quantity 중 하나는 반드시 포함되어야 합니다.");
+            }
+        }
+
+        // 결제용 tossOrderId 생성
+        String tossOrderId;
+        do {
+            tossOrderId = generateTossOrderId();
+        } while (orderRepository.existsByTossOrderId(tossOrderId));
 
         // 새로운 주문 생성 (초기 상태는 PENDING)
-//        Order order = Order.builder()
-//                .user(user)
-//                .tossOrderId(tossOrderId)
-//                .totalAmount(0L)
-//                .status(OrderStatus.PENDING)
-//                .cancelStatus(CancelStatus.NONE)
-//                .expirationTime(LocalDateTime.now().plusMinutes(10))
-//                .build();
         Order order = new Order(user, tossOrderId);
-
         List<OrderDetail> orderDetails = orderRequests.stream()
                 .map(req -> createOrderDetail(order, req))
                 .collect(Collectors.toList());
 
         // 주문 상세(OrderDetail) 저장
+        orderRepository.save(order); // ❓순서 바뀌어도 되는거임????
         orderDetailRepository.saveAll(orderDetails);
         order.updateTotalAmount(calculateTotalAmount(orderDetails));
-        orderRepository.save(order);
 
-        // 비교 #1
+        // ❓비교 #1
         AddressResponseDto defaultAddress = addressRepository.findByUserAndDefaultAddr(user, true)
                 .map(AddressResponseDto::from)
                 .orElse(null);
 
-        // 비교 #2
-        Optional<Address> byUserAndDefaultAddr = addressRepository.findByUserAndDefaultAddr(user, true);
-        Address address = byUserAndDefaultAddr.get();
-        AddressResponseDto from = AddressResponseDto.from(address);
+        // ❓비교 #2
+//        Optional<Address> byUserAndDefaultAddr = addressRepository.findByUserAndDefaultAddr(user, true);
+//        Address address = byUserAndDefaultAddr.get();
+//        AddressResponseDto from = AddressResponseDto.from(address);
 
         return OrderResponseDto.from(order, orderDetails, user.getPoint(), defaultAddress);
     }
@@ -148,35 +163,42 @@ public class OrderServiceImpl implements OrderService{
         return "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "-" + new Random().nextInt(9000);
     }
 
+
     /**
      * 주문 상세 생성 - 장바구니 주문, 바로 주문 구분
      */
-    private OrderDetail createOrderDetail(Order order, OrderRequestDto req) {
-        Cart cart = (req.cartId() != null) ?
-                cartRepository.findById(req.cartId())
-                        .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다. cartId=" + req.cartId()))
-                : null;
+    public OrderDetail createOrderDetail(Order order, OrderRequestDto req) {
+        Cart cart = null;
+        if (req.cartId() != null) {
+            cart = cartRepository.findById(req.cartId())
+                    .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다. cartId=" + req.cartId()));
+        }
 
         Long itemId = (cart != null) ? cart.getProductItem().getId() : req.itemId();
         Long quantity = (cart != null) ? cart.getQuantity() : req.quantity();
 
-        ProductItem productItem = productItemRepository.findProductItemById(itemId);
+        // itemId 및 quantity 검증
+        if (itemId == null) {
+            throw new IllegalArgumentException("상품 ID가 존재하지 않습니다.");
+        }
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("주문 수량은 1개 이상이어야 합니다.");
+        }
+
+        ProductItem productItem = productItemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다. itemId=" + itemId));
+
+        // 중복 주문 방지: 같은 상품을 이미 주문했는지 체크
+        long existingOrderCount = orderRepository.countByUserAndProductItem(order.getUser(), productItem.getId());
+        if (existingOrderCount > 0) {
+            throw new IllegalArgumentException("이미 동일 상품에 대한 주문이 진행 중입니다.");
+        }
 
         // 재고 조회(차감 X)
         if (productItem.getQuantity() < quantity) {
             throw new IllegalArgumentException("재고가 부족하여 주문할 수 없습니다. itemId=" + itemId);
         }
 
-//        return OrderDetail.builder()
-//                .order(order)
-//                .productItem(productItem)
-//                .size(productItem.getSize())
-//                .price(productItem.getProduct().getPrice())
-//                .quantity(quantity)
-//                .brandName(productItem.getProduct().getBrandName())
-//                .productName(productItem.getProduct().getProductName())
-//                .cartId(req.getCartId())
-//                .build();
         return new OrderDetail( // create method
                 order,
                 productItem,
@@ -194,7 +216,8 @@ public class OrderServiceImpl implements OrderService{
      */
     public String cancelOrder(Long orderId) {
         // 주문 조회
-        Order order = orderRepository.findOrderById(orderId);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. orderId=" + orderId));
 
         // 주문 상태가 PENDING이 아닐 경우 취소 불가
         if (order.getStatus() != OrderStatus.PENDING) {
@@ -245,31 +268,43 @@ public class OrderServiceImpl implements OrderService{
         Order order = orderRepository.findByTossOrderIdWithDetails(tossOrderId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
 
-        // 3. 결제 금액 검증
+        /// 3-1. 결제 정보 검증 추가
+        if (paymentKey == null || paymentKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("결제 정보가 누락되었습니다.");
+        }
+
+        /// 3-2. 배송 정보 검증 추가
+        deliveryInfo.validate();
+
+        /// 3-3. 결제 금액 검증
         validateAmount(order.getTotalAmount(), amount);
 
-        // 4. 포인트 정보 복호화 및 검증, 차감 (tx1)
-        Integer pointUsage = Integer.parseInt(AESUtil.decryptWithSalt(point));
+        /// 4. 포인트 정보 복호화 및 검증, 차감 (tx1)
+        Integer pointUsage = Optional.ofNullable(AESUtil.decryptWithSalt(point))
+                .map(Integer::parseInt)
+                .orElse(0); // 기본값 0 설정. NumberFormatException 방지
         validateUserPoint(user, pointUsage);
         user.updatePoint(-pointUsage);
         userRepository.save(user);
 
-        // 5. 배송 정보 생성 후 주문에 연결 (tx1)
+        /// 5. 배송 정보 생성 후 주문에 연결 (tx1)
         Delivery delivery = createDelivery(deliveryInfo);
         order.setDelivery(delivery);
         deliveryRepository.save(delivery); // * 서비스로
 
-        // 6. 해당 주문에 이미 결제가      있는지 확인 ( 주문에 결제는 하나밖에 없음 )
+        /// 6. 해당 주문에 이미 결제가 있는지 확인 ( 주문에 결제는 하나밖에 없음 )
         Optional<PaymentInfoResDto> paymentInfoResDto = paymentService.findLatestPayment(order.getId());
+        if (paymentInfoResDto.isPresent() && paymentInfoResDto.get().paymentStatus() == PaymentStatus.APPROVED) {
+            throw new IllegalArgumentException("이미 결제된 주문입니다.");
+        }
 
-        // 7. 재고 검증 및 차감 (tx2)
+        /// 7. 재고 검증 및 차감 (tx2)
         paymentInfoResDto.ifPresentOrElse(
                 payment -> log.info("최근 결제 내역 존재: {}", payment),
                 () -> validationService.validateBeforePayment(order.getId())
         );
-//        validationService.validateBeforePayment(user, order, point, deliveryInfo);
 
-        // 8. 장바구니에서 주문한 상품 삭제
+        /// 8. 장바구니에서 주문한 상품 삭제
         for (OrderDetail orderDetail : order.getOrderDetails()) {
             cartRepository.deleteById(orderDetail.getCartId()); // +) 예외 추가 - cart가 존재하지 않을 경우
         }
@@ -292,12 +327,11 @@ public class OrderServiceImpl implements OrderService{
         */
         Payment payment = paymentService.processPayment(userId, paymentConfirmReqDto);
 
-
         // 12. 결제 성공/실패에 따라 나머지 로직 처리
         switch (payment.getStatus()) {
             case APPROVED -> {
-                order.addPayment(payment);  // 새로운 결제 추가
-                order.updatePaymentInfo(); // 최신 결제 정보 업데이트
+                log.info("APPROVE 실행");
+                order.addPayment(payment);  // 결제 추가
                 order.updateStatus(OrderStatus.SUCCEEDED);
                 orderRepository.save(order);
             }
@@ -306,6 +340,29 @@ public class OrderServiceImpl implements OrderService{
         }
         System.out.println("----------------------------------ProcessPayment 트랜잭션 종료----------------------------------");
         return PaymentResDto.from(payment);
+    }
+
+    /// 삭제
+    @Transactional
+    public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
+        System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
+        // 1. 재고 확인 및 차감 (비관적 락)
+        for (OrderDetail detail : order.getOrderDetails()) {
+//            System.out.println("getOrderDetail: " + detail.getProductName());
+            ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
+
+            // 재고 부족 체크
+            if (productItem.getQuantity() < detail.getQuantity()) {
+                log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}", productItem.getId(), detail.getQuantity(), productItem.getQuantity());
+                throw new IllegalArgumentException("재고가 부족하여 결제를 진행할 수 없습니다.");
+            }
+
+            // 재고 차감
+            productItem.decreaseStock(detail.getQuantity());
+            productItemRepository.save(productItem);
+            System.out.println("----------------------------------재고 트랜잭션 커밋----------------------------------");
+        }
     }
 
 
@@ -336,7 +393,6 @@ public class OrderServiceImpl implements OrderService{
 
                 // 결제 성공 시 주문 업데이트
                 order.addPayment(retriedPayment);
-//                order.updatePaymentInfo();
                 order.updateStatus(OrderStatus.SUCCEEDED);
                 orderRepository.save(order);
                 System.out.println("----------------------------------재시도 트랜잭션 종료----------------------------------");
@@ -381,7 +437,6 @@ public class OrderServiceImpl implements OrderService{
 
         if (retriedPayment.getStatus() == PaymentStatus.APPROVED) {
             order.addPayment(retriedPayment);
-//            order.updatePaymentInfo();
             order.updateStatus(OrderStatus.SUCCEEDED);
             orderRepository.save(order);
         } else {
@@ -432,8 +487,7 @@ public class OrderServiceImpl implements OrderService{
         Order order = orderRepository.findOrderById(orderId);
         validateOrderWithdrawal(order);
 
-        Delivery delivery = deliveryRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다. orderId=" + orderId));
+        Delivery delivery = order.getDelivery();
 
         // 배송준비중 → 즉시 환불 요청
         if (delivery.getStatus() == DeliveryStatus.READY) {
@@ -520,9 +574,7 @@ public class OrderServiceImpl implements OrderService{
      * 철회 완료 처리 (환불 성공 후 실행)
      */
     private void finalizeOrderWithdrawal(Order order) {
-        Delivery delivery = deliveryRepository.findByOrderId(order.getId())
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다. orderId=" + order.getId()));
-
+        Delivery delivery = order.getDelivery();
         // 업데이트 쿼리로 변경, 리포지토리에서 쿼리 날리는걸로 수정
         order.updateCancelStatus(CancelStatus.COMPLETED);
         order.updateStatus(OrderStatus.WITHDRAW);
@@ -554,9 +606,7 @@ public class OrderServiceImpl implements OrderService{
         }
 
         // 3. 배송 상태 검증: READY(배송 준비중) 또는 ARRIVED(배송 완료) 상태만 철회 가능
-        Delivery delivery = deliveryRepository.findByOrderId(order.getId())
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다. orderId=" + order.getId()));
-
+        Delivery delivery = order.getDelivery();
         if (delivery.getStatus() != DeliveryStatus.READY && delivery.getStatus() != DeliveryStatus.ARRIVED) {
             throw new IllegalStateException("현재 배송 상태에서 철회 요청이 불가능합니다. (orderId=" + order.getId() + ", deliveryStatus=" + delivery.getStatus() + ")");
         }
