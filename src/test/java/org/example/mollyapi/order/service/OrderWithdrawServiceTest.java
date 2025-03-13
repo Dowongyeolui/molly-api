@@ -1,11 +1,10 @@
-package org.example.mollyapi.order;
+package org.example.mollyapi.order.service;
 
 import org.example.mollyapi.delivery.entity.Delivery;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
 import org.example.mollyapi.delivery.type.DeliveryStatus;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
-import org.example.mollyapi.order.service.OrderServiceImpl;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.user.entity.User;
@@ -19,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
-public class OrderWithdrawalIntegrationTest {
+public class OrderWithdrawServiceTest {
 
     @Autowired
     private OrderServiceImpl orderServiceImpl;
@@ -38,8 +37,7 @@ public class OrderWithdrawalIntegrationTest {
         // given - 주문과 배송 정보를 DB에서 가져옴
         Order order56 = orderRepository.findById(56L)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderId=56"));
-        Delivery deliveryReady = deliveryRepository.findByOrderId(56L)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다. orderId=56"));
+        Delivery deliveryReady = order56.getDelivery();
         User user = userRepository.findById(order56.getUser().getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
@@ -66,8 +64,7 @@ public class OrderWithdrawalIntegrationTest {
         // given - 주문과 배송 정보를 DB에서 가져옴
         Order order57 = orderRepository.findById(57L)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderId=57"));
-        Delivery deliveryArrived = deliveryRepository.findByOrderId(57L)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다. orderId=57"));
+        Delivery deliveryArrived = order57.getDelivery();
         User user = userRepository.findById(order57.getUser().getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 

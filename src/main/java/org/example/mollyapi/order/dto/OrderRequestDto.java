@@ -1,7 +1,9 @@
 package org.example.mollyapi.order.dto;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 
+@Builder
 public record OrderRequestDto(
         Long cartId,
         @NotNull Long itemId,

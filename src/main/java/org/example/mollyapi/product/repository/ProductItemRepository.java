@@ -4,6 +4,8 @@ import org.example.mollyapi.product.entity.ProductItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,11 +13,19 @@ import java.util.Optional;
 public interface ProductItemRepository extends JpaRepository<ProductItem, Long> {
     Optional<List<ProductItem>> findAllByProductId(Long productId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+//    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<ProductItem> findById(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM ProductItem p WHERE p.id = :id")
+    Optional<ProductItem> findByIdWithLock(@Param("id") Long id);
 
     default ProductItem findProductItemById(Long itemId) { // 일반 조회용
         return findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + itemId));
     }
+
+    @Query("SELECT pi FROM ProductItem pi JOIN FETCH pi.product WHERE pi.id = :id")
+    Optional<ProductItem> findByIdWithProduct(@Param("id") Long id);
+
 }
