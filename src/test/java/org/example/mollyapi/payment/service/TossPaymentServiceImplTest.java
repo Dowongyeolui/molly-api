@@ -142,7 +142,7 @@ public class TossPaymentServiceImplTest {
         assertThatThrownBy(() -> paymentServiceImpl
                 .processPayment(user.getUserId(), paymentConfirmReqDto))
                 .isInstanceOf(CustomException.class)
-                .hasMessage("결제가 실패했습니다. 다시 시도하시겠습니까? (API: /orders/{orderId}/retry-payment)");
+                .hasMessage("결제가 실패했습니다. 다시 시도하시겠습니까? (API: /orders/{orderId}/fail-payment)");
 
     }
 
