@@ -1,7 +1,10 @@
 package org.example.mollyapi.order.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.mollyapi.cart.repository.CartRepository;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.entity.OrderDetail;
 import org.example.mollyapi.order.repository.OrderRepository;
@@ -18,15 +21,19 @@ public class OrderStockService {
 
     private final ProductItemRepository productItemRepository;
     private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED) // 기존 트랜잭션을 유지
     public void validateBeforePayment(Long orderId){
         System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
+        log.info("orderId = {}", orderId);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(RuntimeException::new);
+                .orElseThrow(() -> new IllegalArgumentException("일치하는 주문이 없습니다."));
+        log.info("order = {}", order.getOrderDetails());
         // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
-//            System.out.println("getOrderDetail: " + detail.getProductName());
+            log.info("detail = {}", detail.getProductItem());
             ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
 
@@ -41,5 +48,13 @@ public class OrderStockService {
             productItemRepository.save(productItem);
             System.out.println("----------------------------------재고 트랜잭션 커밋----------------------------------");
         }
+
+        // 2. 장바구니 삭제
+        for (OrderDetail orderDetail : order.getOrderDetails()) {
+            if (orderDetail.getCartId() != null) {
+                cartRepository.deleteById(orderDetail.getCartId());
+            }
+        }
+
     }
 }

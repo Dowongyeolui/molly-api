@@ -41,7 +41,7 @@ jjwt:
 file:
   storage: http://persimmontree.ddns.net:8081/image
 
-logging:
-  level:
-    org.springframework.orm.jpa: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
-    org.springframework.orm.jpa.JpaTransactionManager: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
+#logging:
+#  level:
+#    org.springframework.orm.jpa: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
+#    org.springframework.orm.jpa.JpaTransactionManager: DEBUG  # ✅ JPA 트랜잭션 시작/종료 로깅
