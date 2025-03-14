@@ -9,9 +9,11 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.service.OrderService;
 import org.example.mollyapi.order.type.CancelStatus;
 import org.example.mollyapi.order.type.OrderStatus;
+import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentInfoResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.payment.entity.Payment;
+import org.example.mollyapi.payment.exception.RetryablePaymentException;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
 import org.example.mollyapi.payment.type.PaymentStatus;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,8 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
@@ -58,7 +60,7 @@ public class PaymentServiceImplTest {
     @Autowired
     private PaymentService paymentService;
 
-    @Mock
+    @MockBean
     private PaymentWebClientUtil paymentWebClientUtil;
 
     User user;
@@ -68,6 +70,7 @@ public class PaymentServiceImplTest {
     Payment payment3;
 
 
+    @Autowired
     private PaymentServiceImpl paymentServiceImpl;
 
 
@@ -131,21 +134,30 @@ public class PaymentServiceImplTest {
         String tossOrderId = order.getTossOrderId();
         String paymentKey = payment1.getPaymentKey();
 
-        ResponseEntity<TossConfirmResDto> response = getResponse(HttpStatus.OK);
-        given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
+        ResponseEntity<TossConfirmResDto> pendingResponse = getResponse(HttpStatus.BAD_GATEWAY);
+        ResponseEntity<TossConfirmResDto> successResponse = getResponse(HttpStatus.OK);
+        given(paymentWebClientUtil.confirmPayment(any(), any()))
+                .willReturn(
+                        pendingResponse,
+                        pendingResponse,
+                        successResponse
+                );
 
-        PaymentServiceImpl paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil, userRepository, orderRepository);
+        PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(order.getId(), order.getTossOrderId(), order.getPaymentId(), order.getTotalAmount(),order.getPaymentType(),order.getPointUsage());
 
         //when
-        Payment newPayment = paymentServiceImpl.retryPayment(userId,tossOrderId,paymentKey);
+        long start = System.currentTimeMillis();
+        Payment newPayment = paymentServiceImpl.processPayment(userId,paymentConfirmReqDto);
+        long elapsed = System.currentTimeMillis() - start;
 
         //then
         assertThat(newPayment)
-                .extracting("paymentStatus","retryCount")
-                .containsExactlyInAnyOrder(PaymentStatus.APPROVED,1);
+                .extracting("paymentStatus")
+                .isEqualTo(PaymentStatus.APPROVED);
+        assertThat(elapsed).isGreaterThanOrEqualTo(1000L);
     }
 
-    @DisplayName("재시도후 실패 (5xx)")
+    @DisplayName("2번의 재시도 후 실패 (5xx)")
     @Test
     void retryPaymentWithPending(){
 
@@ -155,40 +167,23 @@ public class PaymentServiceImplTest {
         String paymentKey = payment1.getPaymentKey();
 
         ResponseEntity<TossConfirmResDto> response = getResponse(HttpStatus.BAD_GATEWAY);
-
-        PaymentServiceImpl paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil, userRepository, orderRepository);
         given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
 
-        //when
-        Payment newPayment = paymentServiceImpl.retryPayment(userId,tossOrderId,paymentKey);
+        PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(order.getId(), order.getTossOrderId(), order.getPaymentId(), order.getTotalAmount(),order.getPaymentType(),order.getPointUsage());
 
-        //then
-        assertThat(newPayment)
-                .extracting("paymentStatus","retryCount")
-                .contains(PaymentStatus.PENDING,1);
-    }
+        // when
+        long start = System.currentTimeMillis();
 
-    @DisplayName("재시도후 실패 (4xx)")
-    @Test
-    void retryPaymentWithFailure(){
+        assertThatThrownBy(() -> paymentServiceImpl
+                .processPayment(userId, paymentConfirmReqDto))
+                .isInstanceOf(RetryablePaymentException.class);
 
-        //given
-        Long userId = user.getUserId();
-        String tossOrderId = order.getTossOrderId();
-        String paymentKey = payment1.getPaymentKey();
+        long elapsed = System.currentTimeMillis() - start;
 
-        ResponseEntity<TossConfirmResDto> response = getResponse(HttpStatus.BAD_REQUEST);
-        given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
-
-        PaymentServiceImpl paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil, userRepository, orderRepository);
-
-        //when
-        Payment newPayment = paymentServiceImpl.retryPayment(userId,tossOrderId,paymentKey);
-
-        //then
-        assertThat(newPayment)
-                .extracting("paymentStatus","retryCount")
-                .contains(PaymentStatus.FAILED,1);
+        // then
+        assertThat(elapsed)
+                .as("경과시간은 최소 backoff delay의 합보다 커야합니다. (>=3000ms) ")
+                .isGreaterThanOrEqualTo(3000L);
     }
 
     @DisplayName("새로운 결제를 생성합니다")

@@ -2,6 +2,8 @@ package org.example.mollyapi.payment.service;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.mollyapi.common.exception.CustomException;
+import org.example.mollyapi.common.exception.error.CustomError;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.CancelStatus;
@@ -9,6 +11,7 @@ import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.dto.request.PaymentConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.payment.entity.Payment;
+import org.example.mollyapi.payment.exception.RetryablePaymentException;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
 import org.example.mollyapi.payment.type.PaymentStatus;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -30,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,9 +46,10 @@ import static org.mockito.BDDMockito.given;
 @Transactional
 public class TossPaymentServiceImplTest {
 
+    @Autowired
     private PaymentServiceImpl paymentServiceImpl;
 
-    @Mock
+    @MockBean
     private PaymentWebClientUtil paymentWebClientUtil;
 
     @Autowired
@@ -100,7 +106,6 @@ public class TossPaymentServiceImplTest {
                 .status(HttpStatus.CREATED)
                 .body(null);
         given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
-        paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil,userRepository, orderRepository);
 
         //when
         Payment payment = paymentServiceImpl.processPayment(
@@ -132,19 +137,12 @@ public class TossPaymentServiceImplTest {
                 .status(HttpStatus.FORBIDDEN)
                 .body(null);
         given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
-        paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil,userRepository, orderRepository);
 
-        //when
-        Payment payment = paymentServiceImpl.processPayment(
-                user.getUserId(),
-                paymentConfirmReqDto
-        );
-
-
-        //then
-        assertThat(payment)
-                .extracting(Payment::getPaymentStatus, Payment::getTossOrderId, Payment::getAmount, Payment::getPaymentType)
-                .isEqualTo(List.of(PaymentStatus.FAILED, tossOrderId, order.getTotalAmount(), "NORMAL"));
+        //when & then
+        assertThatThrownBy(() -> paymentServiceImpl
+                .processPayment(user.getUserId(), paymentConfirmReqDto))
+                .isInstanceOf(CustomException.class)
+                .hasMessage("결제가 실패했습니다. 다시 시도하시겠습니까? (API: /orders/{orderId}/retry-payment)");
 
     }
 
@@ -161,20 +159,13 @@ public class TossPaymentServiceImplTest {
         ResponseEntity<TossConfirmResDto> response = ResponseEntity
                 .status(HttpStatus.BAD_GATEWAY)
                 .body(null);
-        given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);
-        paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil,userRepository, orderRepository);
+        given(paymentWebClientUtil.confirmPayment(any(), any())).willReturn(response);paymentServiceImpl = new PaymentServiceImpl(paymentRepository, paymentWebClientUtil,userRepository, orderRepository);
 
-        //when
-        Payment payment = paymentServiceImpl.processPayment(
-                user.getUserId(),
-                paymentConfirmReqDto
-        );
-
-
-        //then
-        assertThat(payment)
-                .extracting(Payment::getPaymentStatus, Payment::getTossOrderId, Payment::getAmount, Payment::getPaymentType)
-                .isEqualTo(List.of(PaymentStatus.PENDING, tossOrderId, order.getTotalAmount(), "NORMAL"));
+        //when & then
+        assertThatThrownBy(() -> paymentServiceImpl
+                .processPayment(user.getUserId(), paymentConfirmReqDto))
+                .isInstanceOf(RetryablePaymentException.class)
+                .hasMessage("서버 내부 오류");
 
     }
 }
