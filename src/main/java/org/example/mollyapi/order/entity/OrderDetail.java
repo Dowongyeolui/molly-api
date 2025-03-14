@@ -19,6 +19,7 @@ public class OrderDetail {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
     private ProductItem productItem;
