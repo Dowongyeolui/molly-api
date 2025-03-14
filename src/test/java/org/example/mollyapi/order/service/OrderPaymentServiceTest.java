@@ -234,7 +234,7 @@ class OrderPaymentServiceTest {
         Long amount = 5000L;
         String paymentType = "CREDIT_CARD";
         DeliveryReqDto deliveryInfo = new DeliveryReqDto("momo", "010-1111-2222", "판교", "12345", "배송 조심히 해주세요");
-        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount, APPROVED);
+        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount);
 
         PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(
                 testOrder.getId(),
@@ -269,7 +269,7 @@ class OrderPaymentServiceTest {
         Long amount = 5000L;
         String paymentType = "CREDIT_CARD";
         DeliveryReqDto deliveryInfo = new DeliveryReqDto("momo", "010-1111-2222", "판교", "12345", "배송 조심히 해주세요");
-        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount, APPROVED);
+        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount);
 
         PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(
                 testOrder.getId(),
@@ -660,8 +660,7 @@ class OrderPaymentServiceTest {
                 tossOrderId, // Toss 주문 ID
                 paymentKey,  // 결제 키
                 paymentType, // 결제 타입
-                amount,      // 결제 금액
-                APPROVED     // 결제 상태
+                amount      // 결제 금액
         );
 
         when(paymentService.findLatestPayment(any()))
