@@ -39,6 +39,20 @@ public class Delivery {
     @Column(nullable = false)
     private String addrDetail;
 
+//    // 주문과의 1:1 관계 설정
+//    @OneToOne(mappedBy = "delivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+//    private Order order;
+
+    public DeliveryReqDto toDto() {
+        return new DeliveryReqDto(
+                this.receiverName,
+                this.receiverPhone,
+                this.roadAddress,
+                this.numberAddress,
+                this.addrDetail
+        );
+    }
+
     public static Delivery from(DeliveryReqDto deliveryInfo) {
         return Delivery.builder()
                 .receiverName(deliveryInfo.receiver_name())

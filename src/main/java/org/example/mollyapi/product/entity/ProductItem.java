@@ -29,9 +29,6 @@ public class ProductItem extends Base {
         @JoinColumn(name = "product_id")
         Product product;
 
-        @OneToMany(mappedBy = "productItem")
-        List<OrderDetail> orderDetails;
-
         @Builder
         ProductItem(
                 Long id,

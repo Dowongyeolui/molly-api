@@ -264,19 +264,51 @@ public class OrderServiceImpl implements OrderService{
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + userId));
 
-        /// 2. 주문 조회
-        Order order = orderRepository.findByTossOrderIdWithDetails(tossOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderId));
+        /// 2-1. 주문 조회
+        final String tossOrderIdFinal = tossOrderId; // effectively final 보장
+        Order order = orderRepository.findByTossOrderIdWithDetails(tossOrderIdFinal)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. tossOrderId=" + tossOrderIdFinal));
 
-        /// 3-1. 결제 정보 검증 추가
+        /// 2-2. 주문 상태 확인 (재시도 시 필요)
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("결제 재시도는 PENDING 상태에서만 가능합니다.");
+        }
+
+        /// 2-3. 주문 만료 시간 확인 (시간 초과 시 주문 실패 처리)
+        if (order.getExpirationTime().isBefore(LocalDateTime.now())) {
+            failOrder(tossOrderId);
+            throw new IllegalStateException("결제 가능 시간이 초과되었습니다. 주문을 다시 생성해주세요.");
+        }
+
+        /// 3-1. 기존 결제 정보 확인 (주문에 결제는 하나밖에 없음)
+        Optional<PaymentInfoResDto> paymentInfoResDto = paymentService.findLatestPayment(order.getId());
+        boolean isRetry = paymentInfoResDto.isPresent(); // 기존 결제 내역이 있으면 결제 재시도로 판단
+        if (paymentInfoResDto.isPresent() && paymentInfoResDto.get().paymentStatus() == PaymentStatus.APPROVED) {
+            throw new IllegalArgumentException("이미 결제된 주문입니다.");
+        }
+
+        /// 3-2. 최초 요청이 아닌 경우 (재시도 시) 결제 정보 등 파라미터 재입력 받아 업데이트 가능
+        if (isRetry) {
+            PaymentInfoResDto latestPaymentInfo = paymentService.findLatestPayment(order.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("결제 정보가 없습니다."));
+
+            paymentKey = latestPaymentInfo.paymentKey();
+            tossOrderId = latestPaymentInfo.tossOrderId();
+            amount = order.getTotalAmount();
+            point = String.valueOf(order.getPointUsage());
+            paymentType = order.getPaymentType();
+            deliveryInfo = order.getDelivery().toDto();
+        }
+
+        /// 3-3. 결제 정보 검증 추가
         if (paymentKey == null || paymentKey.trim().isEmpty()) {
             throw new IllegalArgumentException("결제 정보가 누락되었습니다.");
         }
 
-        /// 3-2. 배송 정보 검증 추가
+        /// 3-4. 배송 정보 검증 추가
         deliveryInfo.validate();
 
-        /// 3-3. 결제 금액 검증
+        /// 3-5. 결제 금액 검증
         validateAmount(order.getTotalAmount(), amount);
 
         /// 4. 포인트 정보 복호화 및 검증, 차감 (tx1)
@@ -292,26 +324,15 @@ public class OrderServiceImpl implements OrderService{
         order.setDelivery(delivery);
         deliveryRepository.save(delivery); // * 서비스로
 
-        /// 6. 해당 주문에 이미 결제가 있는지 확인 ( 주문에 결제는 하나밖에 없음 )
-        Optional<PaymentInfoResDto> paymentInfoResDto = paymentService.findLatestPayment(order.getId());
-        if (paymentInfoResDto.isPresent() && paymentInfoResDto.get().paymentStatus() == PaymentStatus.APPROVED) {
-            throw new IllegalArgumentException("이미 결제된 주문입니다.");
+        /// 6. 재고 검증 및 차감, 장바구니 삭제 : 첫 결제 요청일 때만 실핼 (tx2)
+        if (!isRetry) {
+            validationService.validateBeforePayment(order.getId());
         }
 
-        /// 7. 재고 검증 및 차감 (tx2)
-        paymentInfoResDto.ifPresentOrElse(
-                payment -> log.info("최근 결제 내역 존재: {}", payment),
-                () -> validationService.validateBeforePayment(order.getId())
-        );
-
-        /// 8. 장바구니에서 주문한 상품 삭제
-        for (OrderDetail orderDetail : order.getOrderDetails()) {
-            cartRepository.deleteById(orderDetail.getCartId()); // +) 예외 추가 - cart가 존재하지 않을 경우
-        }
-        // 9. 주문 정보 저장
+        /// 7. 주문 정보 저장
         orderRepository.save(order);
 
-        // 10. PaymentRequestDto 생성 후 PaymentService 호출
+        /// 10. PaymentRequestDto 생성 후 PaymentService 호출
         PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(
                 order.getId(),
                 order.getTossOrderId(),
@@ -321,13 +342,10 @@ public class OrderServiceImpl implements OrderService{
                 order.getPointUsage()
         );
 
-        // 11. 결제 진행
-        /* internal server error일 경우 -> 자동 재시도
-            다른 에러일 경우 수동 재시도 로직 (주문 저장, 결제만 재시도)
-        */
+        /// 11. 결제 진행
         Payment payment = paymentService.processPayment(userId, paymentConfirmReqDto);
 
-        // 12. 결제 성공/실패에 따라 나머지 로직 처리
+        /// 12. 결제 성공/실패에 따라 나머지 로직 처리
         switch (payment.getStatus()) {
             case APPROVED -> {
                 log.info("APPROVE 실행");
@@ -336,33 +354,13 @@ public class OrderServiceImpl implements OrderService{
                 orderRepository.save(order);
             }
             case PENDING -> handlePaymentFailure(payment, tossOrderId, "결제 실패");
-            case FAILED -> throw new CustomException(PAYMENT_RETRY_REQUIRED);
+            case FAILED -> {
+                log.error("결제 실패 - 사용자 선택 대기");
+                throw new CustomException(OrderError.PAYMENT_RETRY_REQUIRED);
+            }
         }
         System.out.println("----------------------------------ProcessPayment 트랜잭션 종료----------------------------------");
         return PaymentResDto.from(payment);
-    }
-
-    /// 삭제
-    @Transactional
-    public void validateBeforePayment(User user, Order order, String point, DeliveryReqDto deliveryInfo){
-        System.out.println("----------------------------------재고 트랜잭션 시작----------------------------------");
-        // 1. 재고 확인 및 차감 (비관적 락)
-        for (OrderDetail detail : order.getOrderDetails()) {
-//            System.out.println("getOrderDetail: " + detail.getProductName());
-            ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
-
-            // 재고 부족 체크
-            if (productItem.getQuantity() < detail.getQuantity()) {
-                log.warn("재고 부족 - 주문 실패: itemId={}, 요청 수량={}, 남은 재고={}", productItem.getId(), detail.getQuantity(), productItem.getQuantity());
-                throw new IllegalArgumentException("재고가 부족하여 결제를 진행할 수 없습니다.");
-            }
-
-            // 재고 차감
-            productItem.decreaseStock(detail.getQuantity());
-            productItemRepository.save(productItem);
-            System.out.println("----------------------------------재고 트랜잭션 커밋----------------------------------");
-        }
     }
 
 
@@ -405,44 +403,9 @@ public class OrderServiceImpl implements OrderService{
         log.error("결제 재시도 3회 실패 - 주문을 기존 상태로 유지: tossOrderId={}", tossOrderId);
 
         // 사용자에게 재시도 여부를 물음
-        throw new CustomException(OrderError.PAYMENT_RETRY_REQUIRED); // "결제가 실패했습니다. 다시 시도하시겠습니까? (API: /orders/{orderId}/retry-payment)"
+        throw new CustomException(OrderError.PAYMENT_RETRY_REQUIRED); // "결제가 실패했습니다. 다시 시도하시겠습니까? (API: /orders/{orderId}/fail-payment)"
     }
 
-    /**
-     * 결제 재시도 (사용자 API를 받아 수동 재시도)
-     */
-    @Transactional
-    public void retryPayment(Long userId, Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. orderId=" + orderId));
-
-        // 주문 상태 확인
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new IllegalStateException("결제 재시도는 PENDING 상태에서만 가능합니다.");
-        }
-
-        // 주문 만료 시간 확인 (시간 초과 시 주문 실패 처리)
-        if (order.getExpirationTime().isBefore(LocalDateTime.now())) {
-            failOrder(order.getTossOrderId()); // 재시도 횟수 초과 시 주문 취소
-            throw new IllegalStateException("결제 가능 시간이 초과되었습니다. 주문을 다시 생성해주세요.");
-        }
-
-        // 기존 결제 정보 확인 (paymentService 코드 사용으로 리팩토링)
-        Payment latestPayment = paymentRepository.findLatestPaymentByOrderId(orderId, PageRequest.of(0, 1))
-                .stream().findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("결제 정보가 없습니다. orderId=" + orderId));
-
-        // 결제 재시도 진행
-        Payment retriedPayment = paymentService.retryPayment(userId, order.getTossOrderId(), latestPayment.getPaymentKey());
-
-        if (retriedPayment.getStatus() == PaymentStatus.APPROVED) {
-            order.addPayment(retriedPayment);
-            order.updateStatus(OrderStatus.SUCCEEDED);
-            orderRepository.save(order);
-        } else {
-            throw new IllegalStateException("결제 재시도에 실패했습니다.");
-        }
-    }
 
     /**
      * 주문 실패 처리 - 주문 상태 변경, 사용포인트 & 재고 & 장바구니 복구, 배송 삭제, 주문 데이터 삭제
