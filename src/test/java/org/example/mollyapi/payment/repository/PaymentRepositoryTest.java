@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.tuple;
 @SpringBootTest
 @Slf4j
 @Transactional
-@ActiveProfiles("test2")
+@ActiveProfiles("test")
 public class PaymentRepositoryTest {
 
     @Autowired

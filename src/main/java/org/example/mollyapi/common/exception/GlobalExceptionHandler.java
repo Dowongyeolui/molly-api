@@ -1,5 +1,6 @@
 package org.example.mollyapi.common.exception;
 
+import org.example.mollyapi.payment.exception.RetryablePaymentException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -38,6 +39,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMaxSizeException(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body("파일 크기가 너무 큽니다! 최대 업로드 크기를 확인하세요.");
+    }
+
+    @ExceptionHandler(RetryablePaymentException.class)
+    public ResponseEntity<String> handleRetryablePaymentException(RetryablePaymentException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ex.getMessage());
     }
 
 }

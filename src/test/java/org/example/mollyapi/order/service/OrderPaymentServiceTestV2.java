@@ -3,6 +3,7 @@ package org.example.mollyapi.order.service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.address.repository.AddressRepository;
 import org.example.mollyapi.cart.repository.CartRepository;
+import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.common.exception.error.impl.OrderError;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
@@ -13,6 +14,7 @@ import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.type.OrderStatus;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
+import org.example.mollyapi.payment.exception.RetryablePaymentException;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
 import org.example.mollyapi.payment.type.PaymentStatus;
@@ -45,7 +47,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Slf4j
 //@Transactional
-@ActiveProfiles("test2")
+@ActiveProfiles("test")
 @Sql(scripts = "/setup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class OrderPaymentServiceTestV2 {
 
@@ -131,7 +133,7 @@ public class OrderPaymentServiceTestV2 {
         Payment expectedPayment = new Payment(
                 1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user,0
         );
-        doReturn(expectedPayment)
+        doThrow(new CustomException(OrderError.PAYMENT_RETRY_REQUIRED))
                 .when(paymentServiceImpl)
                 .processPayment(anyLong(), any());
 
@@ -233,16 +235,11 @@ public class OrderPaymentServiceTestV2 {
         Payment expectedPayment = new Payment(
                 1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user,0
         );
-        doReturn(expectedPayment)
+        doThrow(new RetryablePaymentException("서버 내부 오류"))
                 .when(paymentServiceImpl)
                 .processPayment(anyLong(), any());
-        // 결제 재시도 Mocking
-        doReturn(expectedPayment)
-                .when(paymentServiceImpl)
-                .retryPayment(anyLong(), anyString(), anyString());
 
         // when & then
-
         // 에러 검증
         assertThatThrownBy(() ->
                 orderServiceImpl.processPayment(
@@ -253,7 +250,9 @@ public class OrderPaymentServiceTestV2 {
                         point,
                         "NORMAL",
                         deliveryReqDto
-                )).hasMessage(OrderError.PAYMENT_RETRY_REQUIRED.getMessage());
+                )).isInstanceOf(RetryablePaymentException.class)
+                .hasMessage("서버 내부 오류");
+
 
         //재고 검증
         Long lastQuantity = beforeQuantity - orderDetail.getQuantity();

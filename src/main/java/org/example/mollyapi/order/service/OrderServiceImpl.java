@@ -328,15 +328,11 @@ public class OrderServiceImpl implements OrderService{
         Payment payment = paymentService.processPayment(userId, paymentConfirmReqDto);
 
         // 12. 결제 성공/실패에 따라 나머지 로직 처리
-        switch (payment.getStatus()) {
-            case APPROVED -> {
-                log.info("APPROVE 실행");
-                order.addPayment(payment);  // 결제 추가
-                order.updateStatus(OrderStatus.SUCCEEDED);
-                orderRepository.save(order);
-            }
-            case PENDING -> handlePaymentFailure(payment, tossOrderId, "결제 실패");
-            case FAILED -> throw new CustomException(PAYMENT_RETRY_REQUIRED);
+        if (Objects.requireNonNull(payment.getStatus()) == PaymentStatus.APPROVED) {
+            log.info("APPROVE 실행");
+            order.addPayment(payment);  // 결제 추가
+            order.updateStatus(OrderStatus.SUCCEEDED);
+            orderRepository.save(order);
         }
         System.out.println("----------------------------------ProcessPayment 트랜잭션 종료----------------------------------");
         return PaymentResDto.from(payment);
