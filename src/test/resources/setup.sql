@@ -17,7 +17,7 @@ INSERT INTO product_item (item_id, created_at, updated_at, color, color_code, qu
 VALUES (1, null, null, 'pink', '#111111', 50, 'XL', 1);
 
 INSERT INTO orders (order_id, cancel_status, expiration_time, ordered_at, payment_amount, payment_id, payment_type, point_save, point_usage, status, toss_order_id, total_amount, delivery_id, user_id)
-VALUES (1, 'NONE', TIMESTAMPADD(MINUTE, 30, NOW()), NOW(), null, 'pay-20250213132349-6572', null, 0, 0, 'PENDING', 'ord-20250213132349-6572', 50000, null, 1);
+VALUES (1, 'NONE', TIMESTAMPADD(HOUR, 30, NOW()), NOW(), null, 'pay-20250213132349-6572', null, 0, 0, 'PENDING', 'ord-20250213132349-6572', 50000, null, 1);
 
 INSERT INTO order_details (order_detail_id, brand_name, cart_id, price, product_name, quantity, size, order_id, item_id)
 VALUES (1, '베리시', 1, 10000, '무지반팔', 5, 'XL', 1, 1);

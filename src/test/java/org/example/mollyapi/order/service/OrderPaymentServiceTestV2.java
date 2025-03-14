@@ -131,7 +131,7 @@ public class OrderPaymentServiceTestV2 {
         // 결제 Mocking
         PaymentStatus paymentStatus = PaymentStatus.FAILED;
         Payment expectedPayment = new Payment(
-                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user,0
+                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user
         );
         doThrow(new CustomException(OrderError.PAYMENT_RETRY_REQUIRED))
                 .when(paymentServiceImpl)
@@ -178,7 +178,7 @@ public class OrderPaymentServiceTestV2 {
         // 결제 Mocking
         PaymentStatus paymentStatus = PaymentStatus.APPROVED;
         Payment expectedPayment = new Payment(
-                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user,0
+                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user
         );
         doReturn(expectedPayment)
                 .when(paymentServiceImpl)
@@ -233,7 +233,7 @@ public class OrderPaymentServiceTestV2 {
         // 결제 Mocking
         PaymentStatus paymentStatus = PaymentStatus.PENDING;
         Payment expectedPayment = new Payment(
-                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user,0
+                1L,"NORMAL",order.getTotalAmount(),order.getPaymentId(),order.getTossOrderId(),order.getOrderedAt(),null,0,paymentStatus,order,user
         );
         doThrow(new RetryablePaymentException("서버 내부 오류"))
                 .when(paymentServiceImpl)

@@ -179,8 +179,6 @@ public class PaymentServiceImpl implements PaymentService {
 //                .orElseThrow(() -> new CustomException(PaymentError.PAYMENT_NOT_FOUND));
         Payment payment = findPaymentByPaymentKey(paymentKey);
 
-        payment.increaseRetryCount();
-
         // 기존 결제 정보를 기반으로 새로운 결제 요청 생성
         PaymentConfirmReqDto retryRequest = new PaymentConfirmReqDto(
                 payment.getOrder().getId(),

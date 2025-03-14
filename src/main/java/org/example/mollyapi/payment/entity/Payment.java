@@ -57,18 +57,6 @@ public class Payment extends Base {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private int retryCount = 0;  // 결제 재시도 횟수
-
-    private static final int MAX_RETRY = 3;  // 최대 재시도 횟수
-
-    public void increaseRetryCount() {
-        if (this.retryCount >= MAX_RETRY) {
-            throw new CustomException(PaymentError.PAYMENT_RETRY_EXCEEDED);
-        }
-        this.retryCount++;
-    }
-
     // 생성자 팩토리 메서드
     public static Payment create(User user, Order order, String tossOrderId,
                                  String paymentKey, String paymentType, Long amount) {
