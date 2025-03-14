@@ -1,0 +1,9 @@
+springdoc:
+  swagger-ui:
+    path: /index.html
+    persist-authorization: true
+  packages-to-scan: org.example.mollyapi
+
+spring:
+  profiles:
+    include: secret

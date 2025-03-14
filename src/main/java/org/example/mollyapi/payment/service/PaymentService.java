@@ -35,17 +35,11 @@ public interface PaymentService {
     //orderId로 최신결제찾기
     public Optional<PaymentInfoResDto> findLatestPayment(Long orderId);
 
-    //orderId로 모든 결제정보 찾기
-    public List<PaymentInfoResDto> findAllPayments(Long orderId);
 
     //userId로 모든 결제정보 찾기
     public List<PaymentInfoResDto> findUserPayments(Long userId);
 
-    public Payment createPayment(Long userId, Long orderId, String tossOrderId, String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus);
-
-    <T> boolean validateResponse(ResponseEntity<T> response);
-
-    ResponseEntity<TossConfirmResDto> tossPaymentApi(TossConfirmReqDto tossConfirmReqDto);
+    public Payment createOrGetPayment(Long userId, Long orderId, String tossOrderId, String paymentKey, String paymentType, Long amount);
 
     Payment retryPayment(Long userId, String tossOrderId, String paymentKey);
 }

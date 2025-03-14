@@ -5,7 +5,7 @@
 -- INSERT INTO orders (ORDER_ID, CANCEL_STATUS, EXPIRATION_TIME, ORDERED_AT, PAYMENT_AMOUNT, PAYMENT_ID, PAYMENT_TYPE, POINT_SAVE, POINT_USAGE, STATUS, TOSS_ORDER_ID, TOTAL_AMOUNT, DELIVERY_ID, USER_ID) VALUES (1,'NONE',DATEADD(MINUTE, 30, NOW()),NOW(),null,'PAY-20250213132349-6572',null,0,0,'PENDING','ORD-20250213132349-6572',50000,null,1);
 -- INSERT INTO order_details (ORDER_DETAIL_ID, BRAND_NAME, CART_ID, PRICE, PRODUCT_NAME, QUANTITY, SIZE, ORDER_ID, ITEM_ID) VALUES (1, '베리시',null,10000,'무지반팔',5,'XL',1,1);
 INSERT INTO users (user_id, created_at, updated_at, birth, cell_phone, flag, name, nickname, point, profile_image, sex)
-VALUES (1, null, null, '2025-03-22', '01011112222', false, 'momo', 'mo', 5000, null, 'male');
+VALUES (1, null, null, '2025-03-22', '01011112222', false, 'momo', 'mo', 5000, null, 'MALE');
 
 INSERT INTO category (category_id, created_at, updated_at, category_name, level, parent_id)
 VALUES (1, null, null, '남성', 0, null);
@@ -17,7 +17,7 @@ INSERT INTO product_item (item_id, created_at, updated_at, color, color_code, qu
 VALUES (1, null, null, 'pink', '#111111', 50, 'XL', 1);
 
 INSERT INTO orders (order_id, cancel_status, expiration_time, ordered_at, payment_amount, payment_id, payment_type, point_save, point_usage, status, toss_order_id, total_amount, delivery_id, user_id)
-VALUES (1, 'none', DATE_ADD(NOW(), INTERVAL 30 MINUTE), NOW(), null, 'pay-20250213132349-6572', null, 0, 0, 'pending', 'ord-20250213132349-6572', 50000, null, 1);
+VALUES (1, 'NONE', TIMESTAMPADD(HOUR, 30, NOW()), NOW(), null, 'pay-20250213132349-6572', null, 0, 0, 'PENDING', 'ord-20250213132349-6572', 50000, null, 1);
 
 INSERT INTO order_details (order_detail_id, brand_name, cart_id, price, product_name, quantity, size, order_id, item_id)
 VALUES (1, '베리시', 1, 10000, '무지반팔', 5, 'XL', 1, 1);
