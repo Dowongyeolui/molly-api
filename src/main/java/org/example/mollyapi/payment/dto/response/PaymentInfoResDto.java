@@ -2,6 +2,7 @@ package org.example.mollyapi.payment.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.type.PaymentStatus;
 
@@ -10,6 +11,10 @@ import java.time.format.DateTimeFormatter;
 public record PaymentInfoResDto (
         @Schema(description = "결제 ID", example = "10")
         Long paymentId,
+        @Schema(description = "결제 키", example = "PAY-12345")  // 추가
+        String paymentKey,
+        @Schema(description = "토스 주문 ID", example = "ORD-202402031231-5678")  // 추가
+        String tossOrderId,
         @Schema(description = "결제 타입", example = "NORMAL")
         String paymentType,
         @Schema(description = "결제 금액", example = "286000")
@@ -32,6 +37,8 @@ public record PaymentInfoResDto (
 
         return new PaymentInfoResDto(
                 payment.getId(),
+                payment.getPaymentKey(), // 추가
+                payment.getTossOrderId(), // 추가
                 payment.getPaymentType(),
                 payment.getAmount(),
                 payment.getPoint(),
