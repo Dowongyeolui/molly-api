@@ -212,7 +212,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
         // 추가적인 조건들
         if (condition != null) {
-            if (condition.categoryId() != null) {
+            if (condition.categoryId() != null && !condition.categoryId().isEmpty()) {
                 if (jpql.toString().contains("WHERE")) {
                     jpql.append("AND p.category.id IN :categoryId ");
                 } else {
@@ -287,14 +287,12 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
             if (condition.colorCode() != null && !condition.colorCode().isEmpty()) {
                 query.setParameter("colorCode", condition.colorCode());
             }
-
             // size가 비어있지 않으면 설정
             if (condition.size() != null && !condition.size().isEmpty()) {
                 query.setParameter("size", condition.size());
             }
-
             // categoryId가 null이 아니면 설정
-            if (condition.categoryId() != null) {
+            if (condition.categoryId() != null && !condition.categoryId().isEmpty()) {
                 query.setParameter("categoryId", condition.categoryId());
             }
 
