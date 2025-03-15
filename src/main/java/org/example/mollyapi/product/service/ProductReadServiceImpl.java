@@ -95,7 +95,7 @@ public class ProductReadServiceImpl implements ProductReadService {
                 dto.getBrandName(),
                 dto.getProductName(),
                 dto.getPrice(),
-                dto.getDescription(),
+                null,
                 thumbnail,
                 null,
                 null,

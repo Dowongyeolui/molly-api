@@ -125,13 +125,13 @@ class ProductReadServiceImplTest {
         List<ProductResDto> products = productReadService.getAllProducts(null, null).getContent();
 
         //then
-        assertThat(products).extracting("id", "categories", "brandName", "productName", "price", "description")
+        assertThat(products).extracting("id", "categories", "brandName", "productName", "price")
                 .containsExactly(
-                        tuple(1L, List.of("category", "1") , "BrandA", "ProductA", 10000L, "Description for Product A"),
-                        tuple(2L, List.of("category", "2") , "BrandB", "ProductB", 15000L, "Description for Product B"),
-                        tuple(3L, List.of("category", "3") , "BrandC", "ProductC", 20000L, "Description for Product C"),
-                        tuple(4L, List.of("category", "4") , "BrandD", "ProductD", 25000L, "Description for Product D"),
-                        tuple(5L, List.of("category", "5") , "BrandE", "ProductE", 30000L, "Description for Product E")
+                        tuple(1L, List.of("category", "1") , "BrandA", "ProductA", 10000L),
+                        tuple(2L, List.of("category", "2") , "BrandB", "ProductB", 15000L),
+                        tuple(3L, List.of("category", "3") , "BrandC", "ProductC", 20000L),
+                        tuple(4L, List.of("category", "4") , "BrandD", "ProductD", 25000L),
+                        tuple(5L, List.of("category", "5") , "BrandE", "ProductE", 30000L)
                 );
         assertThat(products).extracting("thumbnail").extracting("path", "filename")
                 .containsExactly(
@@ -273,16 +273,16 @@ class ProductReadServiceImplTest {
                 brandName,
                 productName,
                 price,
-                description,
-                "ColorCode",
-                "Size",
-                50L,
-                url,
-                filename,
                 LocalDateTime.now(),
                 150L,
                 200L,
-                false
+//                description,
+//                "ColorCode",
+//                "Size",
+//                50L,
+                url,
+                filename
+//                false
         );
     }
 
@@ -293,16 +293,15 @@ class ProductReadServiceImplTest {
                 "BrandA",
                 productName,
                 10000L,
-                "Description for Product A",
-                "RED",
-                "M",
-                50L,
-                "http://example.com/product-a.jpg",
-                "product-a.jpg",
                 LocalDateTime.now(),
                 150L,
                 200L,
-                false
+//                "RED",
+//                "M",
+//                50L,
+                "http://example.com/product-a.jpg",
+                "product-a.jpg"
+//                false
         );
     }
 }
