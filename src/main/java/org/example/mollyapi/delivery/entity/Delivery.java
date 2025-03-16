@@ -39,8 +39,8 @@ public class Delivery {
     @Column(nullable = false)
     private String addrDetail;
 
-//    // 주문과의 1:1 관계 설정
-//    @OneToOne(mappedBy = "delivery", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+//    @OneToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "order_id", nullable = false) // order_id 외래키 추가
 //    private Order order;
 
     public DeliveryReqDto toDto() {

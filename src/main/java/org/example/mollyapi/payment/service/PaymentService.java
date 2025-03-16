@@ -18,6 +18,8 @@ public interface PaymentService {
     //결제 승인 절차
     Payment processPayment(Long userId, PaymentConfirmReqDto requestDto);
 
+    Payment processPaymentTest(Long userId, PaymentConfirmReqDto requestDto, String status);
+
 //    public Payment processPayment(User user, Order order, PaymentRequestDto requestDto);
 
 //    //결제 성공 절차

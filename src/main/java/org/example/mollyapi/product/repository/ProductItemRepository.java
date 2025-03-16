@@ -16,6 +16,7 @@ public interface ProductItemRepository extends JpaRepository<ProductItem, Long> 
 //    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<ProductItem> findById(Long id);
 
+    // 재고 조회 + 락
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM ProductItem p WHERE p.id = :id")
     Optional<ProductItem> findByIdWithLock(@Param("id") Long id);

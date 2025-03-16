@@ -3,7 +3,6 @@ package org.example.mollyapi.order.service;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.cart.repository.CartRepository;
-import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
 import org.example.mollyapi.delivery.repository.DeliveryRepository;
 import org.example.mollyapi.order.entity.Order;
@@ -17,6 +16,7 @@ import org.example.mollyapi.payment.dto.response.PaymentResDto;
 import org.example.mollyapi.payment.entity.Payment;
 import org.example.mollyapi.payment.repository.PaymentRepository;
 import org.example.mollyapi.payment.service.impl.PaymentServiceImpl;
+import org.example.mollyapi.payment.type.PaymentStatus;
 import org.example.mollyapi.product.dto.UploadFile;
 import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductImage;
@@ -31,6 +31,8 @@ import org.example.mollyapi.user.repository.UserRepository;
 import org.example.mollyapi.user.type.Sex;
 import org.example.mollyapi.payment.util.AESUtil;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -41,8 +43,11 @@ import org.mockito.MockedStatic;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -143,7 +148,7 @@ class OrderPaymentServiceTest {
 
         Product product = createTestProduct("Nike", 10000L);
         ProductItem productItem = createTestProductItem(product, "Red", "L", 5L);
-        OrderDetail orderDetail = createTestOrderDetail(testOrder, productItem, 2L);
+        OrderDetail orderDetail = createTestOrderDetail(testOrder, productItem, 1L);
 
         orderRepository.save(testOrder);
         orderDetailRepository.save(orderDetail);
@@ -208,6 +213,19 @@ class OrderPaymentServiceTest {
         return productItemRepository.save(productItem);
     }
 
+    public Order createTestOrder(User user) {
+        // 고유한 주문 ID 생성 (날짜 + UUID 조합)
+        String uniqueOrderId = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + "-" + UUID.randomUUID().toString().substring(0, 6);
+
+        // 주문 생성
+        Order testOrder = orderRepository.save(new Order(user, uniqueOrderId));
+        testOrder.updateTotalAmount(5000L);
+        testOrder.updateStatus(OrderStatus.PENDING);
+
+        return orderRepository.save(testOrder);
+    }
+
     private OrderDetail createTestOrderDetail(Order order, ProductItem productItem, Long quantity) {
         OrderDetail orderDetail = new OrderDetail(order, productItem, productItem.getSize(),
                 productItem.getProduct().getPrice(), quantity,
@@ -269,7 +287,7 @@ class OrderPaymentServiceTest {
         Long amount = 5000L;
         String paymentType = "CREDIT_CARD";
         DeliveryReqDto deliveryInfo = new DeliveryReqDto("momo", "010-1111-2222", "판교", "12345", "배송 조심히 해주세요");
-        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount);
+        Payment mockPayment = Payment.create(testUser, testOrder, mockTossOrderId, paymentKey, paymentType, amount, APPROVED);
 
         PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(
                 testOrder.getId(),
@@ -287,9 +305,9 @@ class OrderPaymentServiceTest {
         PaymentResDto resDto = orderService.processPayment(userId, paymentKey, tossOrderId, amount, encryptedPoint, paymentType, deliveryInfo);
 
         ///then
-        Order vaildOrder = orderRepository.findByTossOrderId(mockTossOrderId).get();
-        assertThat(vaildOrder).isNotNull()
-                .extracting("status", "paymentAmount")
+        Order resultOrder = orderRepository.findByTossOrderId(mockTossOrderId).orElseThrow(() -> new IllegalArgumentException("오더를 찾을 수 없습니다."));
+        assertThat(resultOrder).isNotNull()
+                .extracting("status", "totalAmount")
                 .containsExactly(OrderStatus.SUCCEEDED, amount);
 
     }
@@ -530,7 +548,7 @@ class OrderPaymentServiceTest {
         assertThat(updatedProduct.getQuantity()).isEqualTo(5L); // 10 → 5로 감소해야 함
     }
 
-    /// orderService.validateBeforePayment 수정 필
+    /// 이거임!!!
 //    @Test
 //    @DisplayName("[동시성] 동시성 이슈로 인해 재고가 부족한 경우 예외를 발생시킨다")
 //    @Transactional
@@ -538,6 +556,9 @@ class OrderPaymentServiceTest {
 //        /// given
 //        Product testProduct = createTestProduct("adidas", 5000L);
 //        ProductItem testProductItem = createTestProductItem(testProduct, "blue", "M", 5L);
+//
+////        Order order = orderRepository.findById(testOrder.getId())
+////                .orElseThrow(() -> new IllegalArgumentException("Test에서 터진다 : 일치하는 주문이 없습니다."));
 //
 //        /// when
 //        int threadCount = 6; // 6개 주문 (재고는 10개라서 일부는 실패해야 함)
@@ -547,7 +568,7 @@ class OrderPaymentServiceTest {
 //        for (int i = 0; i < threadCount; i++) {
 //            executorService.submit(() -> {
 //                try {
-//                    orderService.validateBeforePayment(null, testOrder, "0", null);
+//                    orderStockService.validateBeforePayment(testOrder.getId());
 //                } catch (Exception e) {
 //                    System.out.println("예외 발생: " + e.getMessage());
 //                } finally {
@@ -564,6 +585,120 @@ class OrderPaymentServiceTest {
 //        assertThat(updatedProduct.getQuantity()).isGreaterThanOrEqualTo(0); // 음수가 되면 안됨
 //    }
 
+    @Test
+    @DisplayName("[동시성] 각 스레드가 개별 주문을 생성하고, 재고 부족 시 예외 발생 확인")
+    @Transactional
+    void testPessimisticLock_InsufficientStock_ShouldThrowException_SeparateOrders() throws InterruptedException {
+        /// given
+        Product testProduct = createTestProduct("adidas", 5000L);
+        ProductItem testProductItem = createTestProductItem(testProduct, "blue", "M", 5L);
+
+        int threadCount = 6; // 6개의 주문 (재고는 5개라서 일부는 실패해야 함)
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    // 각 스레드가 개별적인 주문을 생성 (고유 OrderId 부여됨)
+                    Order testOrder = createTestOrder(testUser);
+
+                    // 주문 상세 생성 (각 주문마다 개별 OrderDetail 추가)
+                    OrderDetail orderDetail = createTestOrderDetail(testOrder, testProductItem, 1L);
+                    orderDetailRepository.save(orderDetail);
+
+                    // 각 주문의 고유 ID를 사용하여 재고 확인
+                    orderStockService.validateBeforePayment(testOrder.getId());
+                } catch (Exception e) {
+                    System.out.println("예외 발생: " + e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await(); // 모든 스레드 종료 대기
+
+        /// then
+        // 최종 재고 확인 (일부 주문이 실패했어야 함)
+        ProductItem updatedProduct = productItemRepository.findById(testProductItem.getId()).orElseThrow();
+        assertThat(updatedProduct.getQuantity()).isGreaterThanOrEqualTo(0); // 음수가 되면 안됨
+    }
+
+
+    @DisplayName("[재고] 멀티쓰레드 5개에서 재고가 10개인 아이템을 1개씩 구매하면 재고가 5개 남는다.")
+    @ParameterizedTest
+    @ValueSource(ints = {5, 6})
+    void decreaseStockWithMultiThread(int threadCount) throws InterruptedException {
+        /// given
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        Long testOrderId = testOrder.getId();
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+        /// when
+        for (int i = 0; i < threadCount; i++) {
+            int finalI = i;
+            try {
+                log.info("{} 번째 쓰레드 시작", finalI);
+                orderStockService.validateBeforePayment(testOrder.getId());
+                successCount.getAndIncrement();
+                log.info("{} 번째 쓰레드 성공", finalI);
+            }catch(Exception e){
+                log.info("{} 번째 쓰레드 실패", finalI);
+                failCount.incrementAndGet();
+            }finally {
+                log.info("{} 번째 쓰레드 접근 종료", finalI);
+                latch.countDown();
+            }
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        /// then
+        int expectFailCount = threadCount - 5;
+        assertThat(expectFailCount).isEqualTo(failCount.get());
+    }
+
+
+    @DisplayName("[결제] 멀티쓰레드 5개에서 재고가 10개인 아이템을 1개씩 구매하면 재고가 5개 남는다.")
+    @ParameterizedTest
+    @ValueSource(ints = {5, 6})
+    void decreaseStockViaPaymentTestWithMultiThread(int threadCount) throws InterruptedException {
+        /// given
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        Long testOrderId = testOrder.getId();
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+        /// when
+        for (int i = 0; i < threadCount; i++) {
+            int finalI = i;
+            try {
+                log.info("{} 번째 쓰레드 시작", finalI);
+                PaymentConfirmReqDto paymentConfirmReqDto = new PaymentConfirmReqDto(testOrderId, "ORD-202503111234-5678", "paymentKey", 10000L, "CARD", 0);
+                paymentService.processPaymentTest(testUser.getUserId(), paymentConfirmReqDto, "SUCCESS");
+                successCount.getAndIncrement();
+                log.info("{} 번째 쓰레드 성공", finalI);
+            }catch(Exception e){
+                log.info("{} 번째 쓰레드 실패", finalI);
+                failCount.incrementAndGet();
+            }finally {
+                log.info("{} 번째 쓰레드 접근 종료", finalI);
+                latch.countDown();
+            }
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        /// then
+        int expectFailCount = threadCount - 5;
+        assertThat(expectFailCount).isEqualTo(failCount.get());
+    }
 
 //    @Test
 //    @Transactional
@@ -651,20 +786,21 @@ class OrderPaymentServiceTest {
         Long amount = 5000L;
         String paymentType = "CREDIT_CARD";
         DeliveryReqDto deliveryInfo = new DeliveryReqDto("momo", "010-1111-2222", "판교", "12345", "배송 조심히 해주세요");
-        String point = "500";
+        String point = "0";
 
         // 기존 PaymentInfoResDto가 아닌 Payment 객체를 반환하도록 변경
-        Payment mockPayment = Payment.create(
-                testUser,  // 사용자
+        Payment mockApprovePayment = Payment.create(testUser,  // 사용자
                 testOrder, // 주문
                 tossOrderId, // Toss 주문 ID
                 paymentKey,  // 결제 키
                 paymentType, // 결제 타입
-                amount      // 결제 금액
+                amount,
+                APPROVED
         );
 
         when(paymentService.findLatestPayment(any()))
-                .thenReturn(Optional.of(PaymentInfoResDto.from(mockPayment)));
+                .thenReturn(Optional.of(PaymentInfoResDto.from(mockApprovePayment)));
+
         /// when & then
         assertThatThrownBy(() -> orderService.processPayment(userId, paymentKey, tossOrderId, amount, encryptedPoint, paymentType, deliveryInfo))
                 .isInstanceOf(IllegalArgumentException.class)

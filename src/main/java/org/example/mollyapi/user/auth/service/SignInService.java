@@ -1,6 +1,7 @@
 package org.example.mollyapi.user.auth.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.user.auth.config.Jwt;
 import org.example.mollyapi.user.auth.config.PasswordEncoder;
@@ -16,6 +17,7 @@ import static org.example.mollyapi.common.exception.error.impl.AuthError.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SignInService {
 
     private final AuthRepository authRepository;
@@ -28,7 +30,7 @@ public class SignInService {
      * @return JWT
      */
     public SignInResDto signIn(SignInReqDto signInReqDto){
-
+        log.info("email = {}, password = {}", signInReqDto.email(), signInReqDto.password());
         Auth auth = authRepository.findByEmail(signInReqDto.email())
                 .orElseThrow(() -> new CustomException(NOT_MATCH_AUTH));
 
