@@ -24,10 +24,12 @@ import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentWebClientUtil paymentWebClientUtil;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final PaymentSaveService paymentSaveService;
 
     @Value("${secret.payment-api-key}")
     private String apiKey;
@@ -60,9 +63,11 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Optional<PaymentInfoResDto> findLatestPayment(Long orderId) {
         Pageable pageable = PageRequest.of(0, 1);
-        return paymentRepository.findLatestPaymentByOrderId(orderId, pageable).stream()
+        Optional<PaymentInfoResDto> paymentInfoResDto = paymentRepository.findLatestPaymentByOrderId(orderId, pageable).stream()
                 .findFirst()
                 .map(PaymentInfoResDto::from);
+        log.info("findLatestPayment {}", paymentInfoResDto);
+        return paymentInfoResDto;
     }
 
     @Override
@@ -78,7 +83,7 @@ public class PaymentServiceImpl implements PaymentService {
         결제 요청 실행 (API 호출 및 결제 데이터 저장)
      */
     @Retryable(
-            include = {RuntimeException.class},
+            include = {RetryablePaymentException.class},
 //            exclude = {CustomException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 2)
@@ -102,10 +107,12 @@ public class PaymentServiceImpl implements PaymentService {
             case "200" -> payment.successPayment();
             case "400" -> {
                 payment.failPayment("결제 실패");
+                paymentSaveService.persistPayment(payment);
                 throw new CustomException(OrderError.PAYMENT_RETRY_REQUIRED);
             }
             case "500" -> {
                 payment.pendingPayment();
+                paymentSaveService.persistPayment(payment);
                 throw new RetryablePaymentException("서버 내부 오류");
             }
         }
