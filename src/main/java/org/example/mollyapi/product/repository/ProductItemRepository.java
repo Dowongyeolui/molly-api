@@ -21,6 +21,10 @@ public interface ProductItemRepository extends JpaRepository<ProductItem, Long> 
     @Query("SELECT p FROM ProductItem p WHERE p.id = :id")
     Optional<ProductItem> findByIdWithLock(@Param("id") Long id);
 
+    @Lock(LockModeType.OPTIMISTIC)  // 낙관적 락 적용
+    @Query("SELECT p FROM ProductItem p WHERE p.id = :id")
+    Optional<ProductItem> findByIdWithOptimisticLock(@Param("id") Long id);
+
     default ProductItem findProductItemById(Long itemId) { // 일반 조회용
         return findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + itemId));

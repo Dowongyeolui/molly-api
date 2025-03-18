@@ -289,8 +289,11 @@ public class OrderServiceImpl implements OrderService{
             throw new IllegalArgumentException("이미 결제된 주문입니다.");
         }
 
-        Delivery delivery = createDelivery(deliveryInfo);
+        Delivery delivery = Delivery.from(deliveryInfo, order.getId());
+        deliveryRepository.save(delivery);
+
         order.setDelivery(delivery);
+        orderRepository.save(order);
 
         /// 3-2. 최초 요청이 아닌 경우 (재시도 시) 결제 정보 등 파라미터 재입력 받아 업데이트 가능
         if (isRetry) {
@@ -390,20 +393,25 @@ public class OrderServiceImpl implements OrderService{
             throw new IllegalStateException("결제 가능 시간이 초과되었습니다. 주문을 다시 생성해주세요.");
         }
 
-//        /// 3-1. 기존 결제 정보 확인 (주문에 결제는 하나밖에 없음)
+        /// 3. `Delivery` 생성 및 `Order`와 연결
+        Delivery delivery = Delivery.from(deliveryInfo, order.getId()); // 🚀 orderId 설정
+        deliveryRepository.save(delivery); // orderId 포함한 채 저장됨
+
+        /// 4. `Order`에 `delivery_id` 설정 후 저장
+        order.setDelivery(delivery);
+        orderRepository.save(order); // delivery_id 포함된 상태로 저장됨
+
+        if (delivery == null) {
+            throw new IllegalArgumentException("배송 정보를 생성할 수 없습니다.");
+        }
+
+        /// 3-1. 기존 결제 정보 확인 (주문에 결제는 하나밖에 없음)
         Optional<PaymentInfoResDto> paymentInfoResDto = paymentService.findLatestPayment(order.getId());
         boolean isRetry = paymentInfoResDto.isPresent(); // 기존 결제 내역이 있으면 결제 재시도로 판단
 //        if (paymentInfoResDto.isPresent() && paymentInfoResDto.get().paymentStatus() == PaymentStatus.APPROVED) {
 //            throw new IllegalArgumentException("이미 결제된 주문입니다.");
 //        }
 
-//        Delivery delivery = createDelivery(deliveryInfo);
-        Delivery delivery = createDelivery(deliveryInfo);
-        if (delivery == null) {
-            throw new IllegalArgumentException("배송 정보를 생성할 수 없습니다.");
-        }
-        order.setDelivery(delivery);
-        deliveryRepository.save(delivery);
 
         /// 3-2. 최초 요청이 아닌 경우 (재시도 시) 결제 정보 등 파라미터 재입력 받아 업데이트 가능
         if (isRetry) {
@@ -438,14 +446,14 @@ public class OrderServiceImpl implements OrderService{
         user.updatePoint(-pointUsage);
         userRepository.save(user);
 
-        /// 5. 배송 정보 생성 후 주문에 연결 (tx1)
-//        Delivery delivery = createDelivery(deliveryInfo);
-//        delivery.setOrder(order);
-//        order.setDelivery(delivery);
-        orderRepository.save(order);
-        deliveryRepository.save(delivery); // * 서비스로
-//        Delivery delivery = Delivery.from(deliveryInfo, order);  // ✅ Order 설정 추가
-//        deliveryRepository.save(delivery);
+//        /// 5. 배송 정보 생성 후 주문에 연결 (tx1)
+////        Delivery delivery = createDelivery(deliveryInfo);
+////        delivery.setOrder(order);
+////        order.setDelivery(delivery);
+//        orderRepository.save(order);
+//        deliveryRepository.save(delivery); // * 서비스로
+////        Delivery delivery = Delivery.from(deliveryInfo, order);  // ✅ Order 설정 추가
+////        deliveryRepository.save(delivery);
 
         /// 6. 재고 검증 및 차감, 장바구니 삭제 : 첫 결제 요청일 때만 실핼 (tx2)
         if (!isRetry) {
@@ -481,8 +489,8 @@ public class OrderServiceImpl implements OrderService{
     }
 
 
-    private Delivery createDelivery(DeliveryReqDto deliveryInfo) {
-        return Delivery.from(deliveryInfo);
+    private Delivery createDelivery(DeliveryReqDto deliveryInfo, Long orderId) {
+        return Delivery.from(deliveryInfo, orderId);
     }
 
     /**

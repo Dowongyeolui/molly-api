@@ -195,7 +195,7 @@ public class PaymentServiceImpl implements PaymentService {
         Optional<Payment> existingPayment = paymentRepository.findByTossOrderId(tossOrderId);
         if (existingPayment.isPresent()){
             Payment payment = existingPayment.get();
-            payment.increaseRetryCount();
+//            payment.increaseRetryCount();
             switch (payment.getStatus()) {
                 case APPROVED -> {
                     throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);

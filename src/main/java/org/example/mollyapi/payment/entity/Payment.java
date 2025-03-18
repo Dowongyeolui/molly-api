@@ -57,7 +57,7 @@ public class Payment extends Base {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private int retry_count;
+//    private int retry_count;
 
     // 생성자 팩토리 메서드
     public static Payment create(User user, Order order, String tossOrderId,
@@ -117,8 +117,8 @@ public class Payment extends Base {
         return this.paymentStatus;
     }
 
-    public void increaseRetryCount() {
-        this.retry_count++;
-    }
+//    public void increaseRetryCount() {
+//        this.retry_count++;
+//    }
 
 }

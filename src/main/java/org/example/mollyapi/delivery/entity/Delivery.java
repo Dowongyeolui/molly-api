@@ -43,17 +43,21 @@ public class Delivery {
 //    @JoinColumn(name = "order_id", nullable = false) // order_id 외래키 추가
 //    private Order order;
 
+    @Column(name = "order_id", nullable = true) // order_id 추가 (외래키는 걸지 않음)
+    private Long orderId;
+
     public DeliveryReqDto toDto() {
         return new DeliveryReqDto(
                 this.receiverName,
                 this.receiverPhone,
                 this.roadAddress,
                 this.numberAddress,
-                this.addrDetail
+                this.addrDetail,
+                this.orderId
         );
     }
 
-    public static Delivery from(DeliveryReqDto deliveryInfo) {
+    public static Delivery from(DeliveryReqDto deliveryInfo, Long orderId) {
         return Delivery.builder()
                 .receiverName(deliveryInfo.receiver_name())
                 .receiverPhone(deliveryInfo.receiver_phone())
@@ -61,6 +65,7 @@ public class Delivery {
                 .numberAddress(deliveryInfo.number_address())
                 .addrDetail(deliveryInfo.addr_detail())
                 .status(DeliveryStatus.READY) // 기본값 설정
+                .orderId(orderId)
                 .build();
     }
 }
