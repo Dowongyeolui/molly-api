@@ -295,9 +295,9 @@ public class OrderServiceImpl implements OrderService{
             paymentKey = latestPaymentInfo.paymentKey();
             tossOrderId = latestPaymentInfo.tossOrderId();
             amount = order.getTotalAmount();
-            point = String.valueOf(order.getPointUsage());
+//            point = String.valueOf(order.getPointUsage());
             paymentType = order.getPaymentType();
-            deliveryInfo = order.getDelivery().toDto();
+//            deliveryInfo = order.getDelivery().toDto();
         }
 
         /// 3-3. 결제 정보 검증 추가

@@ -105,7 +105,6 @@ public class OrderController {
     @Operation(summary = "주문 결제 요청 API", description = "주문에 대한 결제 요청 및 성공/실패 처리")
     public ResponseEntity<PaymentResDto> processPayment(
             HttpServletRequest request,
-            @PathVariable Long orderId,
             @Valid @RequestBody OrderConfirmRequestDto orderConfirmRequestDto) {
 
         Long userId = (Long) request.getAttribute("userId");
