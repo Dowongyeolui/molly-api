@@ -32,7 +32,7 @@ public class OrderStockService {
         // 1. 재고 확인 및 차감 (비관적 락)
         for (OrderDetail detail : order.getOrderDetails()) {
             log.info("detail = {}", detail.getProductItem());
-            ProductItem productItem = productItemRepository.findById(detail.getProductItem().getId())
+            ProductItem productItem = productItemRepository.findByIdWithLock(detail.getProductItem().getId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. itemId=" + detail.getProductItem().getId()));
 
             // 재고 부족 체크
