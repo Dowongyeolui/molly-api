@@ -73,9 +73,6 @@ public class Payment extends Base {
     }
 
     public boolean failPayment(String failureReason) {
-        if (this.paymentStatus != PaymentStatus.PENDING) {
-            throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
-        }
         this.paymentStatus = PaymentStatus.FAILED;
         this.failureReason = failureReason;
         return true;
