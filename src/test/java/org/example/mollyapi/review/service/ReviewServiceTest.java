@@ -102,7 +102,7 @@ public class ReviewServiceTest {
     @Test
     void registerReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -156,7 +156,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenOrderDetailNotFoundOnRegisterReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Long orderDetailId = 999L;
         AddReviewReqDto addReviewReqDto = new AddReviewReqDto(orderDetailId, "Test content");
         List<MultipartFile> uploadImages = List.of(new MockMultipartFile("file1", "test.jpg", "image/jpeg", "test content".getBytes()));
@@ -171,7 +171,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenUserHasNoPermissionOnRegisterReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -193,7 +193,7 @@ public class ReviewServiceTest {
     @Test
     void findReviewListByProduct() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         ProductItem testItem2 = createAndSaveProductItem("M", testProduct);
@@ -238,8 +238,8 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenProductDoesNotExist() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
-        Long productId = 999L;
+        User testUser = createAndSaveUser("사과", "김사과");
+        Long productId = 0L;
         PageRequest pageable = PageRequest.of(0, 5);
 
         // when & then
@@ -252,7 +252,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenReviewNotExist() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         PageRequest pageable = PageRequest.of(0, 5);
 
@@ -266,7 +266,7 @@ public class ReviewServiceTest {
     @Test
     void findMyReviewList() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
@@ -314,7 +314,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenMyReviewNotExist() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         PageRequest pageable = PageRequest.of(0, 5);
 
         // when & then
@@ -327,7 +327,7 @@ public class ReviewServiceTest {
     @Test
     void updateMyReviewContent() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -351,7 +351,7 @@ public class ReviewServiceTest {
     @Test
     void updateReviewImage() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -407,7 +407,7 @@ public class ReviewServiceTest {
     @Test
     void updateReviewContentAndImage() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -464,7 +464,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionUpdateReviewNotExist() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -489,7 +489,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWithoutChangesOnUpdateReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -516,7 +516,7 @@ public class ReviewServiceTest {
     @Test
     void deleteReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
@@ -550,7 +550,7 @@ public class ReviewServiceTest {
     @Test
     void shouldThrowExceptionWhenReviewNotFoundOnDeleteReview() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Long reviewId = 999L; // 존재하지 않는 리뷰 ID
 
         // when & then
@@ -564,7 +564,7 @@ public class ReviewServiceTest {
     void shouldThrowExceptionWhenDeleteOtherUsersReview() {
         // given
         User anotherUser = createAndSaveUser("뉴비", "최뉴비");
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);

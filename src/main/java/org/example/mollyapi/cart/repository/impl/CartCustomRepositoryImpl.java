@@ -38,7 +38,7 @@ public class CartCustomRepositoryImpl implements CartCustomRepository {
                 .innerJoin(productImage).on(product.id.eq(productImage.product.id)
                     .and(productImage.isRepresentative.eq(Boolean.TRUE)))
                 .where(cart.user.userId.eq(userId))
-                .orderBy(cart.updatedAt.desc())
+                .orderBy(cart.createdAt.desc())
                 .fetch();
     }
 
@@ -46,7 +46,7 @@ public class CartCustomRepositoryImpl implements CartCustomRepository {
     public boolean countByUserUserId(Long userId) {
         return Boolean.TRUE.equals(jpaQueryFactory.select(
                         new CaseBuilder()
-                                .when(cart.count().eq(30L))
+                                .when(cart.count().gt(30L))
                                 .then(Boolean.TRUE)
                                 .otherwise(Boolean.FALSE)
                 ).from(cart)

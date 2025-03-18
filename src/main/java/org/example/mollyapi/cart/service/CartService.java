@@ -12,14 +12,14 @@ import org.example.mollyapi.common.exception.CustomException;
 import org.example.mollyapi.product.dto.response.ColorDetailDto;
 import org.example.mollyapi.product.entity.ProductItem;
 import org.example.mollyapi.product.repository.ProductItemRepository;
+import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.product.service.ProductServiceImpl;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static org.example.mollyapi.common.exception.error.impl.CartError.*;
 import static org.example.mollyapi.common.exception.error.impl.ProductItemError.*;
@@ -31,6 +31,7 @@ import static org.example.mollyapi.common.exception.error.impl.UserError.NOT_EXI
 public class CartService {
     private final ProductServiceImpl productService;
     private final UserRepository userRep;
+    private final ProductRepository productRep;
     private final ProductItemRepository productItemRep;
     private final CartRepository cartRep;
 
@@ -99,25 +100,31 @@ public class CartService {
      * */
     @Transactional(readOnly = true)
     public List<CartInfoResDto> getCartDetail(Long userId) {
-        // 1. 가입된 사용자 여부 체크
+        // 가입된 사용자 여부 체크
         existsUser(userId);
 
-        // 2. 사용자 장바구니 조회
+        // 사용자 장바구니 조회
         List<CartInfoDto> cartInfoList = cartRep.getCartInfo(userId);
         if(cartInfoList.isEmpty()) throw new CustomException(EMPTY_CART);
 
         List<CartInfoResDto> responseDtoList = new ArrayList<>();
+        Map<Long, List<ColorDetailDto>> colorMap = new HashMap<>();  //상품의 옵션 정보를 저장
         for(CartInfoDto cartInfoDto : cartInfoList) {
-            //상품에 해당하는 제품 리스트
-            List<ProductItem> itemList = productItemRep.findAllByProductId(cartInfoDto.productId());
-            if(itemList.isEmpty()) continue;
+            Long productId = cartInfoDto.productId();
+            List<ColorDetailDto> colorDetails;
 
-            //해당 제품의 컬러 및 사이즈
-            List<ColorDetailDto> colorDetails = productService.groupItemByColor(itemList);
+            if(colorMap.containsKey(productId)) { //이미 조회한 적이 있는 상품일 때
+                colorDetails = colorMap.get(productId);
+            } else {
+                //상품에 해당하는 제품 리스트
+                List<ProductItem> itemList = productItemRep.findAllByProductId(productId);
 
+                //해당 제품의 컬러 및 사이즈
+                colorDetails = productService.groupItemByColor(itemList);
+                colorMap.put(productId, colorDetails);
+            }
             responseDtoList.add(new CartInfoResDto(cartInfoDto, colorDetails));
         }
-
         return responseDtoList;
     }
 

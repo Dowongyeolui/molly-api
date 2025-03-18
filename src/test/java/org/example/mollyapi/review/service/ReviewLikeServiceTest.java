@@ -72,7 +72,7 @@ public class ReviewLikeServiceTest {
     @Test
     void changeReviewLike_createNewLike() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -95,7 +95,7 @@ public class ReviewLikeServiceTest {
     @CsvSource({"true", "false"})
     void changeReviewLike_updateExistReview(boolean status) {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -119,7 +119,7 @@ public class ReviewLikeServiceTest {
     @Test
     void shouldThrowExceptionWhenUserNotFoundOnChangeReviewLike() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Product testProduct = createAndSaveProduct();
         ProductItem testItem = createAndSaveProductItem("S", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
@@ -127,7 +127,7 @@ public class ReviewLikeServiceTest {
         OrderDetail testOrderDetail = createAndSaveOrderDetail(testOrder, testItem, testCart.getQuantity(), testCart.getCartId());
         Review testReview = createAndSaveReview(testUser, testOrderDetail, testProduct, "Test content");
 
-        Long userId = 999L;
+        Long userId = 0L;
         UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(testReview.getId(), true);
 
         // when & then
@@ -140,7 +140,7 @@ public class ReviewLikeServiceTest {
     @Test
     void shouldThrowExceptionWhenReviewNotFoundOnChangeReviewLike() {
         // given
-        User testUser = createAndSaveUser("망고", "김망고");
+        User testUser = createAndSaveUser("사과", "김사과");
         Long reviewId = 999L;
         UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(reviewId, true);
 

@@ -2,7 +2,6 @@ package org.example.mollyapi.cart.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import org.example.mollyapi.MollyApiApplication;
 import org.example.mollyapi.cart.dto.Response.CartInfoDto;
 import org.example.mollyapi.cart.entity.Cart;
 import org.example.mollyapi.product.dto.UploadFile;
@@ -15,7 +14,6 @@ import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
 import org.example.mollyapi.user.type.Sex;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
@@ -91,7 +89,7 @@ public class CartRepositoryTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"1, true", "2, false"})
+    @CsvSource({"1, true", "1000000, false"})
     @DisplayName("장바구니에 담긴 수량을 조회할 때, 장바구니 최대수량에 따라 상태값을 반환한다.")
     void checkMaxCart(Long userId, boolean status) {
         //given //when
@@ -125,7 +123,7 @@ public class CartRepositoryTest {
     void findByCartIdAndUserId_NotFound() {
         //given
         Long userId = 4L;
-        Long cartId = 999L;
+        Long cartId = 9999999999L;
 
         //when
         Optional<Cart> cart = cartRepository.findByCartIdAndUserUserId(cartId, userId);
@@ -162,11 +160,11 @@ public class CartRepositoryTest {
     private User createAndSaveUser() {
         return userRepository.save(User.builder()
                 .sex(Sex.FEMALE)
-                .nickname("망고")
+                .nickname("사과")
                 .cellPhone("01011112222")
                 .birth(LocalDate.of(2000, 1, 2))
                 .profileImage("default.jpg")
-                .name("김망고")
+                .name("김사과")
                 .build());
     }
 

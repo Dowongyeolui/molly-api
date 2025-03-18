@@ -67,7 +67,7 @@ public class CartServiceTest {
     @Test
     void shouldAddNewProductItemToCart() {
         // given
-        Long userId = 2L;
+        Long userId = 1000000L;
         Long quantity = 3L;
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
@@ -114,7 +114,7 @@ public class CartServiceTest {
     @Test
     void shouldThrowExceptionWhenUserNotFoundOnAddCart() {
         // given
-        Long userId = 999L;
+        Long userId = 0L;
         AddCartReqDto addCartReqDto = new AddCartReqDto(1L, 2L);
 
         // when & then
@@ -129,7 +129,7 @@ public class CartServiceTest {
     void shouldThrowExceptionWhenProductItemNotFoundOnAddCart() {
         // given
         Long userId = 1L;
-        Long itemId = 999L;
+        Long itemId = 0L;
         AddCartReqDto addCartReqDto = new AddCartReqDto(itemId, 2L);
 
         // when & then
@@ -257,7 +257,7 @@ public class CartServiceTest {
     @Test
     void shouldThrowExceptionWhenUserNotFoundOnUpdateCart() {
         //given
-        Long userId = 999L;
+        Long userId = 9999999L;
         User testUser = createAndSaveUser();
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
@@ -279,7 +279,7 @@ public class CartServiceTest {
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
         ProductItem testItem = createAndSaveProductItem("M", testProduct);
-        Long cartId = 999L; // 존재하지 않는 장바구니 ID
+        Long cartId = 9999999999L; // 존재하지 않는 장바구니 ID
         UpdateCartReqDto updateCartReqDto = new UpdateCartReqDto(cartId, testItem.getId(),3L);
 
         // when & then
@@ -297,7 +297,7 @@ public class CartServiceTest {
         ProductImage testImage = createAndSaveProductImage(testProduct);
         ProductItem testItem = createAndSaveProductItem("M", testProduct);
         Cart testCart = createAndSaveCart(3L, testUser, testItem);
-        Long nonExistentItemId = 999L; // 존재하지 않는 상품 아이템 ID
+        Long nonExistentItemId = 0L; // 존재하지 않는 상품 아이템 ID
         Long newQuantity = 3L;
         UpdateCartReqDto updateCartReqDto = new UpdateCartReqDto(testCart.getCartId(), nonExistentItemId, newQuantity);
 
@@ -369,7 +369,7 @@ public class CartServiceTest {
     @Test
     void shouldThrowExceptionWhenUserNotFoundOnDeleteCart() {
         //given
-        Long userId = 999L;
+        Long userId = 0L;
         User testUser = createAndSaveUser();
         Product testProduct = createAndSaveProduct();
         ProductImage testImage = createAndSaveProductImage(testProduct);
@@ -387,11 +387,11 @@ public class CartServiceTest {
     private User createAndSaveUser() {
         return userRepository.save(User.builder()
                 .sex(Sex.FEMALE)
-                .nickname("망고")
+                .nickname("사과")
                 .cellPhone("01011112222")
                 .birth(LocalDate.of(2000, 1, 2))
                 .profileImage("default.jpg")
-                .name("김망고")
+                .name("김사과")
                 .build());
     }
 
