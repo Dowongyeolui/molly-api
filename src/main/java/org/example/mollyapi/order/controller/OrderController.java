@@ -14,7 +14,9 @@ import org.example.mollyapi.order.dto.*;
 import org.example.mollyapi.order.entity.Order;
 import org.example.mollyapi.order.repository.OrderRepository;
 import org.example.mollyapi.order.service.OrderServiceImpl;
+import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.PaymentResDto;
+import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.example.mollyapi.user.auth.annotation.Auth;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -156,6 +158,65 @@ public class OrderController {
             return ResponseEntity.ok("주문이 실패 처리되었습니다.");
         }
     }
+
+    @Auth
+    @PostMapping("/{orderId}/payment/test")
+    @Operation(summary = "주문 결제 요청 API", description = "주문에 대한 결제 요청 및 성공/실패 처리")
+    public ResponseEntity<PaymentResDto> processPaymentTest(
+            HttpServletRequest request,
+            @RequestParam String status,
+            @Valid @RequestBody OrderConfirmRequestDto orderConfirmRequestDto) {
+
+        Long userId = (Long) request.getAttribute("userId");
+
+        PaymentResDto response = orderServiceImpl.processPaymentTest(
+                userId,
+                orderConfirmRequestDto.paymentKey(),
+                orderConfirmRequestDto.tossOrderId(),
+                orderConfirmRequestDto.amount(),
+                orderConfirmRequestDto.point(),
+                orderConfirmRequestDto.paymentType(),
+                orderConfirmRequestDto.delivery(),
+                status
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+//    /**
+//     * 결제 실패 후 사용자 선택 API
+//     * (결제가 실패했을 때 "네"를 선택하면 결제를 다시 시도하고, "아니오"를 선택하면 주문 실패 처리)
+//     */
+//    @Auth
+//    @PostMapping("/{orderId}/fail-payment/test")
+//    @Operation(summary = "결제 실패 후 사용자 선택 API", description = "사용자가 결제 실패 후 다시 시도할지 여부를 선택")
+//    public ResponseEntity<String> handleFailedPaymentTest(
+//            HttpServletRequest request,
+//            @PathVariable Long orderId,
+//            @RequestParam("retry") boolean retry) { // true면 재시도, false면 주문 실패 처리
+//
+//        Long userId = (Long) request.getAttribute("userId");
+//
+//        Order order = orderRepository.findById(orderId)
+//                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다. orderId=" + orderId));
+//        String tossOrderId = order.getTossOrderId(); // 주문의 tossOrderId 가져오기
+//
+//        if (retry) {
+//            // "네" 선택 시 결제 재시도
+//            try {
+//                orderServiceImpl.processPayment(userId, null, null, null, null, null, null);
+//            } catch (Exception e) {
+//                log.error("수동 결제 재시도 실패! -> failOrder 실행: orderId={}", orderId);
+//                orderServiceImpl.failOrder(tossOrderId); // 실패하면 즉시 failOrder 실행(강제)
+//                return ResponseEntity.ok("결제 재시도 실패로 주문이 자동 실패 처리되었습니다.");
+//            }
+//            return ResponseEntity.ok("결제를 다시 시도합니다.");
+//        } else {
+//            // "아니오" 선택 시 주문 즉시 실패 처리
+//            orderServiceImpl.failOrder(tossOrderId);
+//            return ResponseEntity.ok("주문이 실패 처리되었습니다.");
+//        }
+//    }
 
     /**
      * 반품 확인 API

@@ -91,7 +91,6 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment processPayment(Long userId,
                                   PaymentConfirmReqDto requestDto) {
         System.out.println("----------------------------------결제 트랜잭션 시작----------------------------------");
-
         // 1. 결제 엔티티 생성
         Payment payment = createOrGetPayment(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount());
 
@@ -117,6 +116,49 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
         paymentRepository.save(payment);
+        log.info("processPayment = {}", payment);
+
+        System.out.println("----------------------------------결제 트랜잭션 종료----------------------------------");
+        return payment;
+    }
+
+    @Retryable(
+            include = {RuntimeException.class},
+//            exclude = {CustomException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public Payment processPaymentTest(Long userId,
+                                  PaymentConfirmReqDto requestDto, String status) {
+        System.out.println("----------------------------------결제 트랜잭션 시작----------------------------------");
+        // 1. 결제 엔티티 생성
+        Payment payment = createOrGetPaymentTest(userId, requestDto.orderId(), requestDto.tossOrderId(), requestDto.paymentKey(), requestDto.paymentType(), requestDto.amount());
+
+        //jmeter 테스트 시 정한 상태 값에 따라 동적으로 변경
+        if(status.equals("SUCCESS")) {
+            status = "200";
+        } else if(status.equals("FAIL")){
+            status = "400";
+        } else {
+            status = "500";
+        }
+
+        // 3. 응답 검증
+        // pending -> 자동 재시도, fail -> 수동 재시도, approve -> 완료
+        switch (status) {
+            case "200" -> payment.successPayment();
+            case "400" -> {
+                log.info("status 400");
+                payment.failPayment("결제 실패");
+                throw new CustomException(OrderError.PAYMENT_RETRY_REQUIRED);
+            }
+            case "500" -> {
+                payment.pendingPayment();
+                throw new RetryablePaymentException("서버 내부 오류");
+            }
+        }
+        paymentRepository.save(payment);
+        log.info("processPayment = {}", payment);
 
         System.out.println("----------------------------------결제 트랜잭션 종료----------------------------------");
         return payment;
@@ -128,6 +170,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Payment createOrGetPayment(Long userId, Long orderId, String tossOrderId,
                                  String paymentKey, String paymentType, Long amount) {
+        log.info("createOrGetPayment 실행");
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));
         Order order = orderRepository.findById(orderId)
@@ -136,6 +179,30 @@ public class PaymentServiceImpl implements PaymentService {
         Optional<Payment> existingPayment = paymentRepository.findByPaymentKey(paymentKey);
         if (existingPayment.isPresent()){
             Payment payment = existingPayment.get();
+            switch (payment.getStatus()) {
+                case APPROVED -> {
+                    throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);
+                }
+                case PENDING, FAILED -> {
+                    return payment;
+                }
+            }
+        }
+        return Payment.create(user, order, tossOrderId, paymentKey, paymentType, amount);
+    }
+
+    public Payment createOrGetPaymentTest(Long userId, Long orderId, String tossOrderId,
+                                      String paymentKey, String paymentType, Long amount) {
+        log.info("createOrGetPayment 실행");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserError.NOT_EXISTS_USER));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(PaymentError.ORDER_NOT_FOUND));
+
+        Optional<Payment> existingPayment = paymentRepository.findByTossOrderId(tossOrderId);
+        if (existingPayment.isPresent()){
+            Payment payment = existingPayment.get();
+//            payment.increaseRetryCount();
             switch (payment.getStatus()) {
                 case APPROVED -> {
                     throw new CustomException(PaymentError.PAYMENT_ALREADY_PROCESSED);

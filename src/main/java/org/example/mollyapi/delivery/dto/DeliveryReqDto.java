@@ -15,7 +15,9 @@ public record DeliveryReqDto(
         @Schema(description = "지번", example = "12345")
         String number_address,
         @Schema(description = "배송 세부사항", example = "배송 조심히 해주세요")
-        String addr_detail
+        String addr_detail,
+        @Schema(description = "주문 ID", example = "123") // orderId 추가
+        Long order_id
 ) {
         // Delivery 엔티티를 기반으로 DeliveryReqDto를 생성하는 정적 메서드 추가
         public static DeliveryReqDto from(Delivery delivery) {
@@ -24,7 +26,8 @@ public record DeliveryReqDto(
                         delivery.getReceiverPhone(),
                         delivery.getRoadAddress(),
                         delivery.getNumberAddress(),
-                        delivery.getAddrDetail()
+                        delivery.getAddrDetail(),
+                        delivery.getOrderId()
                 );
         }
 

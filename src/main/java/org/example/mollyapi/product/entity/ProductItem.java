@@ -29,6 +29,10 @@ public class ProductItem extends Base {
         @JoinColumn(name = "product_id")
         Product product;
 
+//        @Version
+//        @Column(nullable = false) // NOT NULL 설정
+//        private Integer version = 0;  // 기본값 0 설정
+
         @Builder
         ProductItem(
                 Long id,
@@ -76,4 +80,39 @@ public class ProductItem extends Base {
 
                 log.info("재고 복구 완료: 상품 ID={}, 최종 재고={}", this.id, this.quantity);
         }
+
+//        /**
+//         * 재고 차감 (낙관적 락 적용)
+//         */
+//        public void decreaseStock(Long quantityToDecrease) {
+//                if (this.quantity < quantityToDecrease) {
+//                        throw new IllegalArgumentException("재고 부족: 현재 수량=" + this.quantity + ", 요청 수량=" + quantityToDecrease);
+//                }
+//
+//                this.quantity -= quantityToDecrease;
+//                this.product.increasePurchaseCount();
+//
+//                log.info("재고 차감 완료: 상품 ID={}, 남은 재고={}", this.id, this.quantity);
+//        }
+//
+//        /**
+//         * 재고 복구 (낙관적 락 적용)
+//         */
+//        public void restoreStock(Long quantityToRestore) {
+//                log.info("재고 복구 시작: 상품 ID={}, 현재 재고={}, 복구 수량={}", this.id, this.quantity, quantityToRestore);
+//
+//                if (this.product == null) {
+//                        throw new IllegalStateException("재고 복구 실패: Product가 null입니다. itemId=" + this.id);
+//                }
+//
+//                if (this.product.getPurchaseCount() == null) {
+//                        log.warn("purchaseCount가 null이므로 0으로 초기화합니다. productId={}", this.product.getId());
+//                        this.product.setPurchaseCount(0L);
+//                }
+//
+//                this.quantity += quantityToRestore;
+//                this.product.decreasePurchaseCount();
+//
+//                log.info("재고 복구 완료: 상품 ID={}, 최종 재고={}", this.id, this.quantity);
+//        }
 }

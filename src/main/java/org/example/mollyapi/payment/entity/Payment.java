@@ -57,6 +57,8 @@ public class Payment extends Base {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+//    private int retry_count;
+
     // 생성자 팩토리 메서드
     public static Payment create(User user, Order order, String tossOrderId,
                                  String paymentKey, String paymentType, Long amount) {
@@ -68,6 +70,20 @@ public class Payment extends Base {
                 .paymentType(paymentType)
                 .amount(amount)
                 .paymentStatus(PaymentStatus.PENDING)
+                .paymentDate(LocalDateTime.now())
+                .build();
+    }
+
+    public static Payment create(User user, Order order, String tossOrderId,
+                                 String paymentKey, String paymentType, Long amount, PaymentStatus paymentStatus) {
+        return Payment.builder()
+                .user(user)
+                .order(order)
+                .tossOrderId(tossOrderId)
+                .paymentKey(paymentKey)
+                .paymentType(paymentType)
+                .amount(amount)
+                .paymentStatus(paymentStatus)
                 .paymentDate(LocalDateTime.now())
                 .build();
     }
@@ -97,5 +113,9 @@ public class Payment extends Base {
     public PaymentStatus getStatus() {
         return this.paymentStatus;
     }
+
+//    public void increaseRetryCount() {
+//        this.retry_count++;
+//    }
 
 }

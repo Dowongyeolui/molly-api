@@ -11,7 +11,8 @@ public record PaymentResDto(
         Long amount,
 //        LocalDateTime paymentDate,
         String paymentStatus,
-        String tossOrderId
+        String tossOrderId,
+        String tossPaymentKey
 
 ) { public static PaymentResDto from(Payment payment) {
     return new PaymentResDto(
@@ -20,7 +21,8 @@ public record PaymentResDto(
             payment.getAmount(),
 //            payment.getPaymentDate(),
             payment.getPaymentStatus().getStatus(),
-            payment.getTossOrderId()
+            payment.getTossOrderId(),
+            payment.getPaymentKey()
             );
 }
 
