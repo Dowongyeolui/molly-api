@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
     List<OrderDetail> findByOrderId(Long orderId);
@@ -21,4 +22,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     @Transactional
     @Query("DELETE FROM OrderDetail od WHERE od.order.id IN :orderIds")
     int deleteAllByOrderIds(@Param("orderIds") List<Long> orderIds);
+
+    Optional<OrderDetail> findByIdAndOrderUserUserId(Long orderDetailId, Long userId);
 }

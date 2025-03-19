@@ -1,9 +1,6 @@
 package org.example.mollyapi.payment.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import org.example.mollyapi.payment.entity.Payment;
-
-import java.time.LocalDateTime;
 
 public record PaymentResDto(
         Long paymentId,

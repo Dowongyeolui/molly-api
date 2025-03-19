@@ -6,20 +6,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.user.auth.dto.SignInReqDto;
 import org.example.mollyapi.user.auth.dto.SignInResDto;
 import org.example.mollyapi.user.auth.service.SignInService;
 import org.example.mollyapi.user.type.Role;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -43,20 +42,16 @@ public class SignInController {
             @ApiResponse( responseCode = "204", description = "로그인 성공, 토큰은 Header 를 참고해주세요")
     })
 
-    public ResponseEntity<List<Role>> signIn(@RequestBody SignInReqDto signInReqDto, HttpServletResponse response) {
+    public ResponseEntity<List<Role>> signIn(@Valid @RequestBody SignInReqDto signInReqDto, HttpServletResponse response) {
 
         SignInResDto signInResDto = signInService.signIn(signInReqDto);
 
         String token = signInResDto.accessToken();
         token = URLEncoder.encode(TOKEN_PREFIX + token, StandardCharsets.UTF_8);
-        Cookie httpOnlyCookie = new Cookie(HEADER_STRING, token);
-        httpOnlyCookie.setHttpOnly(true);
-//        httpOnlyCookie.setSecure(true); // HTTPS에서만 전송 (운영 환경에서는 true로 설정해야 함)
-        httpOnlyCookie.setPath("/");
-        httpOnlyCookie.setMaxAge(3600);
 
-        response.addCookie(httpOnlyCookie);
+        // 응답 헤더에 추가
+        response.setHeader(HEADER_STRING, token);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(signInResDto.roles());
+        return ResponseEntity.ok(signInResDto.roles());
     }
 }

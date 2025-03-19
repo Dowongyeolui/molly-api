@@ -13,7 +13,6 @@ import java.util.List;
 @Entity
 @Getter
 @Table(name = "auth")
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SecondaryTable(
@@ -40,7 +39,15 @@ public class Auth extends Base {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_AUTH_USER"))
     private User user;
 
-    public void updatedLastLoginAt() {
-        lastLoginAt = LocalDateTime.now();
+    @Builder
+    public Auth(String email, Password password, List<Role> role, User user) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.user = user;
+    }
+
+    public void updatedLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 }

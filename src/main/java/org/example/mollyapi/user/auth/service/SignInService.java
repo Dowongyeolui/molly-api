@@ -8,12 +8,11 @@ import org.example.mollyapi.user.auth.config.PasswordEncoder;
 import org.example.mollyapi.user.auth.dto.SignInReqDto;
 import org.example.mollyapi.user.auth.dto.SignInResDto;
 import org.example.mollyapi.user.auth.entity.Auth;
+import org.example.mollyapi.user.auth.entity.Password;
 import org.example.mollyapi.user.auth.repository.AuthRepository;
 import org.springframework.stereotype.Service;
 
-
-
-import static org.example.mollyapi.common.exception.error.impl.AuthError.*;
+import static org.example.mollyapi.common.exception.error.impl.AuthError.NOT_MATCH_AUTH;
 
 @Service
 @RequiredArgsConstructor
@@ -34,13 +33,16 @@ public class SignInService {
         Auth auth = authRepository.findByEmail(signInReqDto.email())
                 .orElseThrow(() -> new CustomException(NOT_MATCH_AUTH));
 
-        if(!passwordEncoder.check(auth, signInReqDto.password())){
+        Password password = auth.getPassword();
+
+        if(!passwordEncoder.check(
+                password.getPassword(),
+                signInReqDto.password(),
+                password.getSalt())){
             throw new CustomException(NOT_MATCH_AUTH);
         }
 
-        auth.updatedLastLoginAt();
-        authRepository.save(auth);
-
+        auth.updatedLastLoginAt(signInReqDto.lastLoginAt());
 
         return new SignInResDto(
                 jwt.generateToken(auth.getAuthId(),

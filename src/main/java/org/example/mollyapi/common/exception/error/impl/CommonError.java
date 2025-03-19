@@ -2,7 +2,6 @@ package org.example.mollyapi.common.exception.error.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
 import org.example.mollyapi.common.exception.error.CustomError;
 import org.springframework.http.HttpStatus;
 

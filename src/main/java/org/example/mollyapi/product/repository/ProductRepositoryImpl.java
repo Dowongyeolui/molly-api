@@ -2,6 +2,7 @@ package org.example.mollyapi.product.repository;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.example.mollyapi.product.dto.*;
 import org.example.mollyapi.product.enums.OrderBy;
@@ -26,70 +27,96 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
     @Override
     public Slice<BrandSummaryDto> getTotalViewGroupByBrandName(Pageable pageable) {
-        List<BrandSummaryDto> content = queryFactory.select(
+        if (pageable == null) { pageable  = Pageable.unpaged(); }
+
+        JPAQuery<BrandSummaryDto> query = queryFactory.select(
                 new QBrandSummaryDto(
-                        productImage.url.max().as("brandThumbnail"),
-                        product.brandName,
-                        product.count(),
-                        product.viewCount.sum().as("viewCount")))
-                .from(productImage)
-                .join(productImage.product, product)
-                .on(productImage.isRepresentative.isTrue())
-                .groupBy(product.brandName)
-                .orderBy(product.viewCount.sum().desc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1)
-                .fetch();
+                    productImage.url.max().as("brandThumbnail"),
+                    product.brandName,
+                    product.count(),
+                    product.viewCount.sum().as("viewCount")))
+            .from(productImage)
+            .join(productImage.product, product)
+            .on(productImage.isRepresentative.isTrue())
+            .groupBy(product.brandName)
+            .orderBy(product.viewCount.sum().desc());
+
+        if (pageable.isPaged()) {
+            query.offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1);
+        }
+        List<BrandSummaryDto> content = query.fetch();
+
         boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
+        if (pageable.isPaged() && content.size() > pageable.getPageSize()) {
             content.remove(pageable.getPageSize());
             hasNext = true;
         }
-        return new SliceImpl<BrandSummaryDto>(content, pageable, hasNext);
+        return new SliceImpl<>(content, pageable, hasNext);
     }
+
 
     @Override
     public Slice<ProductAndThumbnailDto> findByCondition(ProductFilterCondition condition, Pageable pageable) {
-        List<ProductAndThumbnailDto> content = queryFactory
+        if (pageable == null) pageable = Pageable.unpaged();
+
+        JPAQuery<ProductAndThumbnailDto> query = queryFactory
                 .select(new QProductAndThumbnailDto(
                         product.id,
                         product.category.id.as("categoryId"),
                         product.brandName,
                         product.productName,
                         product.price,
-                        product.description,
-                        productImage.url,
-                        productImage.filename,
                         product.createdAt,
                         product.viewCount,
-                        product.purchaseCount
+                        product.purchaseCount,
+                        productImage.url,
+                        productImage.filename,
+                        product.user.userId
                 ))
-                .distinct()
-                .from(productItem)
-                .join(productItem.product, product)
-                .leftJoin(productImage).on(productImage.product.eq(product).and(productImage.isRepresentative.eq(true)))
-                .where(
-                        colorCodeEq(condition.getColorCode()),
-                        sizeEq(condition.getSize()),
-                        categoryIdEq(condition.getCategoryId()),
-                        brandNameEq(condition.getBrandName()),
-                        priceGoe(condition.getPriceGoe()),
-                        priceLt(condition.getPriceLt()),
-                        sellerIdEq(condition.getSellerId()),
-                        excludeSoldOut(condition.getExcludeSoldOut())
-                )
-                .orderBy(orderByCondition(condition.getOrderBy()))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1)
-                .fetch();
+                .from(product)
+                .join(productImage).on(productImage.product.eq(product).and(productImage.isRepresentative.eq(true)));
+
+        if (    condition != null && (
+                (condition.colorCode() != null && !condition.colorCode().isEmpty()) ||
+                (condition.size() != null && !condition.size().isEmpty()) ||
+                (condition.excludeSoldOut() != null && condition.excludeSoldOut() == Boolean.TRUE))){
+             query.where(product.id.in(
+                    JPAExpressions
+                            .select(productItem.product.id)
+                            .from(productItem)
+                            .where(
+                                    colorCodeEq(condition.colorCode()),
+                                    sizeEq(condition.size()),
+                                    excludeSoldOut(condition.excludeSoldOut())
+                            )
+                            .groupBy(productItem.product.id)));
+        }
+        if (condition != null) {
+            query.where(
+                            categoryIdEq(condition.categoryId()),
+                            brandNameEq(condition.brandName()),
+                            priceGoe(condition.priceGoe()),
+                            priceLt(condition.priceLt()),
+                            sellerIdEq(condition.sellerId()))
+                    .orderBy(orderByCondition(condition.orderBy()));
+        }
+
+        if (pageable.isPaged()) {
+            query.offset(pageable.getOffset());
+            query.limit(pageable.getPageSize() + 1);
+        }
+
+        List<ProductAndThumbnailDto> content = query.fetch();
 
         boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
+        if (pageable.isPaged() && content.size() > pageable.getPageSize()) {
             content.remove(pageable.getPageSize());
             hasNext = true;
         }
-        return new SliceImpl<ProductAndThumbnailDto>(content, pageable, hasNext);
+        return new SliceImpl<>(content, pageable, hasNext);
     }
+
     private BooleanExpression colorCodeEq(List<String> colorCode) {
         return colorCode != null && !colorCode.isEmpty()? productItem.colorCode.in(colorCode): null;
     }
@@ -125,7 +152,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
     private OrderSpecifier<?> orderByCondition(OrderBy orderBy) {
         if (orderBy != null) {
             return switch (orderBy) {
-                case CREATED_AT -> product.category.createdAt.desc();
+                case CREATED_AT -> product.createdAt.desc();
                 case VIEW_COUNT -> product.viewCount.desc();
                 case PURCHASE_COUNT -> product.purchaseCount.desc();
                 case PRICE_DESC ->  product.price.desc();

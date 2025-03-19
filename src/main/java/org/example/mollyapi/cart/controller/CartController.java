@@ -43,7 +43,8 @@ public class CartController {
             @Valid @RequestBody AddCartReqDto addCartReqDto,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.addCart(addCartReqDto, userId);
+        cartService.addCart(addCartReqDto, userId);
+        return ResponseEntity.ok(new CommonResDto("장바구니 등록에 성공했습니다."));
     }
 
     @Auth
@@ -59,14 +60,15 @@ public class CartController {
     })
     public ResponseEntity<?> getCartDetail(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return cartService.getCartDetail(userId);
+        List<CartInfoResDto> responseDtoList = cartService.getCartDetail(userId);
+        return ResponseEntity.ok(responseDtoList);
     }
 
     @Auth
     @PutMapping()
     @Operation(summary = "장바구니 상품 수정 API", description = "장바구니에 담긴 상품의 옵션을 수정할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),
+            @ApiResponse(responseCode = "200", description = "1. 장바구니 내역 수정 성공 \t\n 2. 변경 사항이 없는 경우"),
             @ApiResponse(responseCode = "400", description = "1. 존재하지 않는 사용자 \t\n 2. 요청이 잘못된 경우 \t\n 3. 존재하지 않는 상품 \t\n 4. 준비된 재고 초과",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
@@ -75,14 +77,14 @@ public class CartController {
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         cartService.updateItemOption(updateCartReqDto, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new CommonResDto("옵션 변경에 성공했습니다."));
     }
 
     @Auth
     @DeleteMapping()
     @Operation(summary = "장바구니 상품 삭제", description = "장바구니에 담긴 상품을 삭제할 수 있습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "장바구니 내역 삭제 성공",
+            @ApiResponse(responseCode = "200", description = "장바구니 내역 삭제 성공",
                     content = @Content(schema = @Schema(implementation = CommonResDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 삭제 요청",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class))),
@@ -94,6 +96,6 @@ public class CartController {
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         cartService.deleteCartItem(cartList, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new CommonResDto("장바구니 내역 삭제에 성공했습니다."));
     }
 }

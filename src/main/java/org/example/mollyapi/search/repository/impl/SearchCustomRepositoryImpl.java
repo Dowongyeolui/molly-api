@@ -5,8 +5,8 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.ItemDto;
+import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.SearchItemResDto;
 import org.example.mollyapi.search.dto.SearchOptionReqDto;
 import org.example.mollyapi.search.repository.SearchCustomRepository;
@@ -17,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.example.mollyapi.product.entity.QProduct.product;
-import static org.example.mollyapi.product.entity.QProductImage.*;
+import static org.example.mollyapi.product.entity.QProductImage.productImage;
 import static org.example.mollyapi.product.entity.QProductItem.productItem;
-import static org.example.mollyapi.search.entity.QSearch.*;
+import static org.example.mollyapi.search.entity.QSearch.search;
 import static org.springframework.util.StringUtils.hasText;
 
 

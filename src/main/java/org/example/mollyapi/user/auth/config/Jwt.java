@@ -59,7 +59,7 @@ public class Jwt {
         return getClaims(token).getExpiration();
     }
 
-    public List<?> extractRole(String token) {
+    public List<String> extractRole(String token) {
         return getClaims(token).get("roles", List.class);
     }
 

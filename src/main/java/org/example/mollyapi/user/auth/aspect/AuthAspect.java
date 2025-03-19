@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
-import static org.example.mollyapi.common.exception.error.impl.AuthError.*;
+import static org.example.mollyapi.common.exception.error.impl.AuthError.WRONG_APPROACH;
 
 @Aspect
 @Component

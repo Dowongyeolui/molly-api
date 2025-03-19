@@ -12,13 +12,12 @@ import org.example.mollyapi.common.dto.CommonResDto;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
 import org.example.mollyapi.user.dto.SignUpReqDto;
 import org.example.mollyapi.user.service.SignUpService;
-
-
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
 
 @Tag(name = "회원가입 Controller", description = "회원가입을 담당")
 @RestController
@@ -35,7 +34,8 @@ public class SignUpController {
             @ApiResponse(responseCode = "400", description = "실패",
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
-    public ResponseEntity<CommonResDto> signUp(@Valid @RequestBody SignUpReqDto form){
+    public ResponseEntity<CommonResDto> signUp(
+            @Valid @RequestBody SignUpReqDto form){
         signUpService.signUp(form);
         return ResponseEntity.status(HttpStatusCode.valueOf(204)).body(
                 new CommonResDto("회원가입에 성공하셨습니다."));

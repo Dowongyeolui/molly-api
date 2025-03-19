@@ -9,11 +9,9 @@ import org.example.mollyapi.review.repository.ReviewLikeRepository;
 import org.example.mollyapi.review.repository.ReviewRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.repository.UserRepository;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.example.mollyapi.common.exception.error.impl.CartError.NOT_CHANGED;
 import static org.example.mollyapi.common.exception.error.impl.ReviewError.NOT_EXIST_REVIEW;
 import static org.example.mollyapi.common.exception.error.impl.UserError.NOT_EXISTS_USER;
 
@@ -31,7 +29,7 @@ public class ReviewLikeService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public ResponseEntity<?> changeReviewLike(UpdateReviewLikeReqDto likeDto, Long userId) {
+    public void changeReviewLike(UpdateReviewLikeReqDto likeDto, Long userId) {
         // 가입된 사용자 여부 체크
         User user = userRep.findById(userId)
                 .orElseThrow(() -> new CustomException(NOT_EXISTS_USER));
@@ -40,23 +38,21 @@ public class ReviewLikeService {
         Review review = reviewRep.findById(likeDto.reviewId())
                 .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
 
-        // 사용자가 작성한 이전에 작성한 리뷰가 있는 지
+        // 사용자가 이전에 누른 좋아요가 있는 지
         ReviewLike reviewLike = reviewLikeRep.findByReviewIdAndUserUserId(likeDto.reviewId(), userId);
 
         // ReviewLike Entity에 데이터를 추가한 적이 없을 경우
         if(reviewLike == null) {
             // 좋아요 생성
-            ReviewLike newReviewLike =  ReviewLike.builder()
+            reviewLike =  ReviewLike.builder()
                     .isLike(true)
                     .user(user)
                     .review(review)
                     .build();
 
-            reviewLikeRep.save(newReviewLike);
+            reviewLikeRep.save(reviewLike);
         } else { // 이미 좋아요를 눌렀던 적이 있을 경우
-            boolean isUpdate = reviewLike.updateIsLike(likeDto.status());
-            if(!isUpdate) throw new CustomException(NOT_CHANGED);
+            reviewLike.updateIsLike(likeDto.status());
         }
-        return ResponseEntity.ok().body("좋아요 수정에 성공했습니다.");
     }
 }

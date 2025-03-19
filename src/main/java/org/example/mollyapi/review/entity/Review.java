@@ -27,21 +27,23 @@ public class Review extends Base {
     @Column(length = 2200, nullable = false)
     private String content; //리뷰 내용
 
-    @Column(name = "is_deleted", columnDefinition = "TINYINT(1) DEFAULT 0")
+    @Column(name = "is_deleted", columnDefinition = "BIT DEFAULT FALSE")
     private Boolean isDeleted; //삭제 여부. 0: False, 1: True
+
+    private Long count; //리뷰 누적 좋아요
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_USER"))
     private User user;
 
-    // 수정 필
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id", foreignKey = @ForeignKey(name = "FK_REVIEW_ORDERDETAIL"))
-    @OnDelete(action= OnDeleteAction.CASCADE) // @OnDelete(action=OnDeleteAction,SET_NULL) OrderDetail<->Review 서로가 삭제되도 cascade가 없게
+    @OnDelete(action= OnDeleteAction.SET_NULL)
     private OrderDetail orderDetail;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "FK_REVIEW_PRODUCT"))
+    @JoinColumn(name = "product_id", foreignKey = @ForeignKey(name = "FK_REVIEW_PRODUCT"))
+    @OnDelete(action= OnDeleteAction.SET_NULL)
     private Product product;
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -54,10 +56,6 @@ public class Review extends Base {
 
     public void addImage(ReviewImage reviewImage) {
         this.reviewImages.add(reviewImage);
-    }
-
-    public void updateImages(List<ReviewImage> reviewImage) {
-        this.reviewImages = reviewImage;
     }
 
     public void updateContent(String content) {

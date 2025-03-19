@@ -8,12 +8,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.common.exception.CustomErrorResponse;
+import org.example.mollyapi.review.dto.response.GetTrendingReviewResDto;
 import org.example.mollyapi.review.dto.response.TrendingReviewResDto;
 import org.example.mollyapi.review.service.TrendingReviewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "리뷰 인기순위 Controller", description = "최근 7일 간 리뷰 인기순위 Top 18 조회")
 @RestController
@@ -31,6 +34,7 @@ public class TrendingReviewController {
                     content = @Content(schema = @Schema(implementation = CustomErrorResponse.class)))
     })
     public ResponseEntity<?> getTrendingReview() {
-        return trendingReviewService.getTrendingReview();
+        List<GetTrendingReviewResDto> reviewResDtoList = trendingReviewService.getTrendingReview();
+        return ResponseEntity.ok().body(reviewResDtoList);
     }
 }

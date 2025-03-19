@@ -2,15 +2,12 @@ package org.example.mollyapi.search.service;
 
 
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.product.repository.ProductRepository;
 import org.example.mollyapi.search.dto.SearchCommonResDto;
 import org.example.mollyapi.search.dto.SearchItemResDto;
 import org.example.mollyapi.search.dto.SearchOptionReqDto;
 import org.example.mollyapi.search.entity.Search;
 import org.example.mollyapi.search.repository.SearchRepository;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor

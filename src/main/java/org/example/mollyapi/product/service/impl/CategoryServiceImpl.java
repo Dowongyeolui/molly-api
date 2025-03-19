@@ -1,11 +1,19 @@
-package org.example.mollyapi.product.service;
+package org.example.mollyapi.product.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.mollyapi.common.exception.CustomException;
+import org.example.mollyapi.common.exception.error.impl.CategoryError;
 import org.example.mollyapi.product.entity.Category;
 import org.example.mollyapi.product.repository.CategoryRepository;
+import org.example.mollyapi.product.service.CategoryService;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.example.mollyapi.common.exception.error.impl.CategoryError.*;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +38,14 @@ public class CategoryServiceImpl implements CategoryService {
 
         Collections.reverse(path);
         return path;
+    }
+
+    @Override
+    public List<String> getCategoryPath(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new CustomException(NOT_EXIST_CATEGORY));
+
+        return getCategoryPath(category);
     }
 
     @Override

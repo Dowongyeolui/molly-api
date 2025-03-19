@@ -1,0 +1,13 @@
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (2, '남성', null, 0, null, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (3, '여성', null, 0, null, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (4, '아우터', null, 1, 2, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (5, '상의', null, 1, 2, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (6, '바지', null, 1, 2, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (7, '패션소품', null, 1, 2, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (8, '아우터', null, 1, 3, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (9, '상의', null, 1, 3, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (10, '바지', null, 1, 3, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (11, '원피스/스커트', null, 1, 3, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (12, '패션소품', null, 1, 3, null);
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (13, 'Shoes', '2025-03-03 10:53:40.000000', null, null, '2025-03-03 10:53:40.000000');
+INSERT INTO category (category_id, category_name, created_at, level, parent_id, updated_at) VALUES (14, 'Shoes', '2025-03-03 10:56:09.000000', null, null, '2025-03-03 10:56:09.000000');

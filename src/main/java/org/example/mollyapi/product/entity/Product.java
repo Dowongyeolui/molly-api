@@ -1,7 +1,11 @@
 package org.example.mollyapi.product.entity;
 
+import com.github.f4b6a3.tsid.TsidCreator;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
 import org.example.mollyapi.user.entity.User;
@@ -16,7 +20,6 @@ import java.util.Optional;
 public class Product extends Base {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id")
     Long id;
 
@@ -26,6 +29,7 @@ public class Product extends Base {
     String brandName;
     String productName;
     Long price;
+    @Column(length = 500)
     String description;
     Long viewCount = 0L;
 
@@ -44,6 +48,7 @@ public class Product extends Base {
 
     @Builder
     public Product(
+            Long id,
             Category category,
             String brandName,
             String productName,
@@ -51,6 +56,7 @@ public class Product extends Base {
             String description,
             User user
     ) {
+        this.id = id;;
         this.category = category;
         this.brandName = brandName;
         this.productName = productName;

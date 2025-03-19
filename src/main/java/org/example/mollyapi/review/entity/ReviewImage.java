@@ -4,11 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.mollyapi.common.entity.Base;
 import org.example.mollyapi.product.dto.UploadFile;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
@@ -28,12 +25,11 @@ public class ReviewImage extends Base {
     @Column(name = "image_index", nullable = false)
     private Long imageIndex;
 
-    @Column(name = "is_video", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    @Column(name = "is_video", nullable = false, columnDefinition = "BIT DEFAULT FALSE")
     private Boolean isVideo; //비디오 여부. 0: False, 1: True
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_LIKE_REVIEW"))
-    @OnDelete(action= OnDeleteAction.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id", nullable = false, foreignKey = @ForeignKey(name = "FK_IMAGE_REVIEW"))
     private Review review;
 
     @Builder

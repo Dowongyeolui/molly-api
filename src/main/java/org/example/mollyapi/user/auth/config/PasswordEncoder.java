@@ -1,19 +1,20 @@
 package org.example.mollyapi.user.auth.config;
 
-import org.example.mollyapi.user.auth.entity.Auth;
-import org.example.mollyapi.user.auth.entity.Password;
+import org.example.mollyapi.common.exception.CustomException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Base64;
+import java.util.UUID;
+
+import static org.example.mollyapi.common.exception.error.impl.AuthError.RETRY_ACTIVE;
 
 @Component
 public class PasswordEncoder {
@@ -44,55 +45,51 @@ public class PasswordEncoder {
 
     /***
      * 비밀번호 암호화
-     * @param email 소금 해시를 얻기위한 값
-     * @param password 아직 암호화되지 않은 비밀번호
+     * @param inputPassword 아직 암호화되지 않은 비밀번호
      * @return 비밀번호 객체
      */
-    public Password encrypt(String email, String password) {
+    public String encrypt(String inputPassword, byte[] salt) {
         try {
 
-            byte[] salt = getSalt(email);
-            KeySpec spec = new PBEKeySpec(password.toCharArray(), getSalt(email), iterations, keyLength);
+            KeySpec spec = new PBEKeySpec(inputPassword.toCharArray(), salt, iterations, keyLength);
             SecretKeyFactory factory = SecretKeyFactory.getInstance(encodeAlgorithm);
-
             byte[] hash = factory.generateSecret(spec).getEncoded();
-            String encodedPassword =  Base64.getEncoder().encodeToString(hash);
-            return Password.of(encodedPassword, salt);
+            return Base64.getEncoder().encodeToString(hash);
 
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException | InvalidKeySpecException e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new CustomException(RETRY_ACTIVE);
         }
 
     }
 
     /***
      * 소금 생성 메소드
-     * @param email 소금 생성시킬 변수
      * @return 소금
-     * @throws NoSuchAlgorithmException
-     * @throws UnsupportedEncodingException
      */
-    private byte[] getSalt(String email) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        //임의 길이의 데이터를 고정 길이의 해시 값으로 변환하는 알고리즘 = MessageDigest
-        MessageDigest messageDigest = MessageDigest.getInstance(saltAlgorithm);
-        //이메일을 byte 값으로 변경
-        byte[] keyBytes = email.getBytes(StandardCharsets.UTF_8);
+    public byte[] getSalt() {
 
-        //saltAlgorithm 사용하여 해시, 결과를 바이드로 반환
-        return  messageDigest.digest(keyBytes);
+        try {
+            //임의 길이의 데이터를 고정 길이의 해시 값으로 변환하는 알고리즘 = MessageDigest
+            MessageDigest messageDigest = MessageDigest.getInstance(saltAlgorithm);
+            byte[] keyBytes = UUID.randomUUID()
+                    .toString()
+                    .replace("_", "")
+                    .getBytes(StandardCharsets.UTF_8);
+
+            //saltAlgorithm 사용하여 해시, 결과를 바이드로 반환
+            return  messageDigest.digest(keyBytes);
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new CustomException(RETRY_ACTIVE);
+        }
     }
 
     /***
      * 비밀번호 학인 메소드
-     * @param auth 인증, 인가 정보
      * @param inputPassword 입력된 비밀번호
      * @return 비밀 번호 일치 여부
      */
-    public boolean check(Auth auth, String inputPassword) {
-
-        Password password = auth.getPassword();
-        Password encryptPassword = encrypt(auth.getEmail(), inputPassword);
-
-        return password.getPassword().equals(encryptPassword.getPassword());
+    public boolean check( String originPassword, String inputPassword, byte[] salt) {
+        return encrypt(inputPassword, salt).equals(originPassword);
     }
 }

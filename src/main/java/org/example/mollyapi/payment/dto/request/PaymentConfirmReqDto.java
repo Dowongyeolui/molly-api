@@ -2,10 +2,7 @@ package org.example.mollyapi.payment.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import org.example.mollyapi.address.dto.AddressRequestDto;
 import org.example.mollyapi.delivery.dto.DeliveryReqDto;
-
-import java.time.LocalDateTime;
 
 
 @Builder
