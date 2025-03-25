@@ -55,7 +55,7 @@ public class ProductItemSubQuery {
     }
 
     public ProductItemSubQuery appendExcludeSoldOut(Boolean excludeSoldOut) {
-        if (excludeSoldOut == null) {
+        if (excludeSoldOut == null || !excludeSoldOut) {
             return this;
         }
         query.append("AND quantity > 0\n");

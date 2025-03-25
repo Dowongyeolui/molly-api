@@ -135,6 +135,7 @@ public class ProductController {
                 .priceGoe(conditionReqDto.priceGoe())
                 .priceLt(conditionReqDto.priceLt())
                 .sellerId(userId)
+                .excludeSoldOut(conditionReqDto.excludeSoldOut())
                 .orderBy(conditionReqDto.orderBy())
                 .build();
     }
