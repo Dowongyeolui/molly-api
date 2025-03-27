@@ -1,6 +1,7 @@
 package org.example.mollyapi.order.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,11 +23,12 @@ public class OrderDetail {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
     private ProductItem productItem;
 
-    @Column(nullable = true)
+    @Column
     private String size;
 
     @Column(nullable = false)
@@ -39,25 +41,17 @@ public class OrderDetail {
 
     private String productName;
 
-    @Column(name = "cart_id", nullable = true)
+    @Column(name = "cart_id")
     private Long cartId;
 
-    public ProductItem getProductItem() {
-        return productItem;
-    }
-
-    public Long getQuantity() {
-        return quantity;
-    }
-
     @Builder
-    public OrderDetail(Order order, ProductItem productItem, String size, Long price, Long quantity,String brandName, String productName, Long cartId) {
+    public OrderDetail(Order order, ProductItem productItem, String size, Long price, Long quantity, String brandName, String productName, Long cartId) {
         this.order = order;
         this.productItem = productItem;
         this.size = size;
         this.price = price;
         this.quantity = quantity;
-        this.brandName =brandName;
+        this.brandName = brandName;
         this.productName = productName;
         this.cartId = cartId;
     }

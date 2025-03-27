@@ -19,5 +19,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("SELECT p FROM Payment p WHERE p.user.id = :userId")
     Optional<List<Payment>> findAllByUserId(@Param("userId") Long userId);
 
-    Optional<List<Payment>> findAllByOrderByCreatedAtDesc();
+    @Query("SELECT p FROM Payment p WHERE p.tossOrderId = :tossOrderId ORDER BY p.paymentDate DESC")
+    Optional<Payment> findTopLatestPaymentByOrderId(@Param("tossOrderId") String tossOrderId);
+
+    Optional<Payment> findByTossOrderId(String tossOrderId);
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.cart.dto.Response.CartInfoDto;
 import org.example.mollyapi.cart.repository.CartCustomRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.example.mollyapi.cart.entity.QCart.cart;
@@ -46,11 +47,20 @@ public class CartCustomRepositoryImpl implements CartCustomRepository {
     public boolean countByUserUserId(Long userId) {
         return Boolean.TRUE.equals(jpaQueryFactory.select(
                         new CaseBuilder()
-                                .when(cart.count().gt(30L))
+                                .when(cart.count().goe(30L))
                                 .then(Boolean.TRUE)
                                 .otherwise(Boolean.FALSE)
                 ).from(cart)
                 .where(cart.user.userId.eq(userId))
                 .fetchOne());
+    }
+
+    @Override
+    public List<Long> getExpiredCartId() {
+        return jpaQueryFactory.select(
+                    cart.cartId
+                ).from(cart)
+                .where(cart.createdAt.lt(LocalDateTime.now().minusDays(365)))
+                .fetch();
     }
 }

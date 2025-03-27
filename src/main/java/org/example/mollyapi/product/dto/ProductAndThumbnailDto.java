@@ -1,6 +1,9 @@
 package org.example.mollyapi.product.dto;
 
 import com.querydsl.core.annotations.QueryProjection;
+import jakarta.persistence.ColumnResult;
+import jakarta.persistence.ConstructorResult;
+import jakarta.persistence.SqlResultSetMapping;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -19,12 +22,7 @@ public class ProductAndThumbnailDto {
     LocalDateTime createdAt;
     Long viewCount;
     Long purchaseCount;
-//    String description;
-//    String colorCode;
-//    String size;
-//    Long quantity;
-//    Boolean excludeSoldOut;
-
+    Long sellerId;
 
     @QueryProjection
     public ProductAndThumbnailDto(
@@ -33,25 +31,23 @@ public class ProductAndThumbnailDto {
             String brandName,
             String productName,
             Long price,
-            LocalDateTime createdAt,
+            String url,
+            String filename,
+            Long sellerId,
             Long viewCount,
             Long purchaseCount,
-            String url,
-            String filename
+            LocalDateTime createdAt
     ) {
         this.id = id;
         this.categoryId = categoryId;
         this.brandName = brandName;
         this.productName = productName;
         this.price = price;
-//        this.description = description;
-//        this.colorCode = colorCode;
-//        this.size = size;
-//        this.quantity = quantity;
         this.createdAt = createdAt;
         this.viewCount = viewCount;
         this.purchaseCount = purchaseCount;
         this.url = url;
         this.filename = filename;
+        this.sellerId = sellerId;
     }
 }

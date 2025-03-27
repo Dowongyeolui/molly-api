@@ -28,6 +28,8 @@ class SignUpControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private SignUpService signUpService;
 
     @Test
     @DisplayName("회원가입 요청에 성공했다.")

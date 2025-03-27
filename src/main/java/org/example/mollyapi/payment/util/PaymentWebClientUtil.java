@@ -2,6 +2,7 @@ package org.example.mollyapi.payment.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.mollyapi.common.config.WebClientUtil;
 import org.example.mollyapi.common.exception.CustomException;
@@ -10,6 +11,7 @@ import org.example.mollyapi.payment.dto.request.TossConfirmReqDto;
 import org.example.mollyapi.payment.dto.response.TossCancelResDto;
 import org.example.mollyapi.payment.dto.response.TossConfirmResDto;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
+@Getter
 public class PaymentWebClientUtil {
     private final WebClientUtil webClientUtil;
     @Value("${secret.confirm-url}")
@@ -31,23 +34,20 @@ public class PaymentWebClientUtil {
         this.webClientUtil = webClientUtil;
     }
 
-    public TossConfirmResDto confirmPayment(TossConfirmReqDto request, String apiKey) {
+    public ResponseEntity<TossConfirmResDto> confirmPayment(TossConfirmReqDto request, String apiKey) {
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes()));
         headers.put("Content-Type", "application/json");
 
         try {
-            ResponseEntity<TossConfirmResDto> response = webClientUtil.post(
+            return webClientUtil.post(
                     confirmUrl,
                     request,
                     TossConfirmResDto.class,
                     headers
             );
-
-            return response.getBody();
         } catch (WebClientResponseException e) {
-            handlePaymentError(e);
-            throw e;
+            return handlePaymentError(e);
         }
     }
 
@@ -72,7 +72,7 @@ public class PaymentWebClientUtil {
         }
     }
 
-    private void handlePaymentError(WebClientResponseException e) {
+    private ResponseEntity<TossConfirmResDto> handlePaymentError(WebClientResponseException e) {
         String errorBody = e.getResponseBodyAsString();
         HttpStatusCode status = e.getStatusCode();
 
@@ -81,7 +81,8 @@ public class PaymentWebClientUtil {
         String responseMessage = errorMessage != null ? errorMessage : "결제 요청 중 오류가 발생했습니다.";
 
         // 토스페이먼츠 오류는 동적으로 처리
-        throw new CustomException(status, responseMessage);
+        return ResponseEntity.status(status)
+                .body(null);
     }
 
     private String extractErrorMessage(String errorBody) {

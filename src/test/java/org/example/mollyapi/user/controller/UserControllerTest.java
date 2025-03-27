@@ -2,6 +2,7 @@ package org.example.mollyapi.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.mollyapi.user.service.SignUpService;
+import org.example.mollyapi.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ class UserControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private SignUpService signUpService;
+    private UserService userService;
 
 
     @Test

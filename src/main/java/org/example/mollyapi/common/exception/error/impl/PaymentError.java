@@ -21,6 +21,8 @@ public enum PaymentError implements CustomError {
     PAYMENT_AMOUNT_MISMATCH("결제 금액이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     PAYMENT_POINT_INSUFFICIENT("보유한 포인트가 충분하지 않습니다.", HttpStatus.BAD_REQUEST),
     ORDER_NOT_FOUND("주문 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    PAYMENT_RETRY_EXCEEDED("결제 시도 횟수가 초과되었습니다.", HttpStatus.CONFLICT),
+    ORDER_EXPIRED("주문 기한이 만료되었습니다.", HttpStatus.BAD_REQUEST),
 
 
     // 결제 취소 에러

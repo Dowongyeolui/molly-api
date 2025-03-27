@@ -18,10 +18,7 @@ public record PaymentConfirmReqDto(
         Long amount,
         @Schema(description = "결제수단", example = "NORMAL")
         String paymentType,
-        @Schema(description = "사용한 포인트", example = "5000 (암호화됨)")
-        String point,
-//        @Schema(description = "배송지 id", example = "1")
-        DeliveryReqDto delivery
-
+        @Schema(description = "사용한 포인트", example = "5000")
+        Integer point
 ){
 }

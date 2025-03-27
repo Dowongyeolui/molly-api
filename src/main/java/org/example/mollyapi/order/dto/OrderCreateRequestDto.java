@@ -1,15 +1,15 @@
 package org.example.mollyapi.order.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class OrderCreateRequestDto {
-    private List<OrderRequestDto> orderRequests;
-
+public record OrderCreateRequestDto(
+        List<OrderRequestDto> orderRequests
+) {
+    @JsonCreator
+    public OrderCreateRequestDto(@JsonProperty("orderRequests") List<OrderRequestDto> orderRequests) {
+        this.orderRequests = orderRequests;
+    }
 }
+

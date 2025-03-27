@@ -22,7 +22,6 @@ public class SignUpService {
     private final UserRepository userRepository;
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ImageClientImpl imageClientImpl;
 
     /***
      * 회원가입
