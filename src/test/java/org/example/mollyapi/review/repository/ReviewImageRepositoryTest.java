@@ -187,7 +187,7 @@ public class ReviewImageRepositoryTest {
         return reviewRepository.save(Review.builder()
                 .content(content)
                 .isDeleted(false)
-                .count(0L)
+                .likeCount(0L)
                 .user(user)
                 .orderDetail(orderDetail)
                 .product(product)

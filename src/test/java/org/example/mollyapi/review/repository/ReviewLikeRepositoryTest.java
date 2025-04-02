@@ -10,7 +10,7 @@ import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductItem;
 import org.example.mollyapi.product.repository.ProductItemRepository;
 import org.example.mollyapi.product.repository.ProductRepository;
-import org.example.mollyapi.review.dto.request.UpdateReviewLikeReqDto;
+import org.example.mollyapi.review.dto.request.ReviewLikeReqDto;
 import org.example.mollyapi.review.entity.Review;
 import org.example.mollyapi.review.entity.ReviewLike;
 import org.example.mollyapi.user.entity.User;
@@ -73,14 +73,13 @@ public class ReviewLikeRepositoryTest {
         Long userId = testUser.getUserId();
         Long reviewId = testReview.getId();
         ReviewLike testReviewLike = createAndSaveReviewLike(true, testUser, testReview);
-        UpdateReviewLikeReqDto likeDto = new UpdateReviewLikeReqDto(reviewId, true);
+        ReviewLikeReqDto likeDto = new ReviewLikeReqDto(reviewId, true);
 
         // when
-        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserUserId(likeDto.reviewId(), userId);
+        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserId(likeDto.reviewId(), userId);
 
         // then
         assertThat(reviewLike).isNotNull();
-        assertThat(reviewLike.getIsLike()).isEqualTo(testReviewLike.getIsLike());
     }
 
     @DisplayName("특정 리뷰에 대한 사용자의 좋아요 여부를 조회할 때, 좋아요가 존재하지 않는 경우")
@@ -94,13 +93,12 @@ public class ReviewLikeRepositoryTest {
         Order testOrder = createAndSaveOrder(testUser);
         OrderDetail testOrderDetail = createAndSaveOrderDetail(testOrder, testItem, testCart.getQuantity(), testCart.getCartId());
         Review testReview = createAndSaveReview(testUser, testOrderDetail, testProduct, "test 1");
-        UpdateReviewLikeReqDto likeDto = new UpdateReviewLikeReqDto(testReview.getId(), true);
+        ReviewLikeReqDto likeDto = new ReviewLikeReqDto(testReview.getId(), true);
 
         // when
-        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserUserId(likeDto.reviewId(), testUser.getUserId());
-
+        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserId(likeDto.reviewId(), testUser.getUserId());
         // then
-        assertThat(reviewLike).isNull();
+        assertThat(reviewLike).isNotNull();
     }
 
     @DisplayName("특정 리뷰에 해당하는 모든 좋아요를 삭제한다")
@@ -193,7 +191,7 @@ public class ReviewLikeRepositoryTest {
         return reviewRepository.save(Review.builder()
                 .content(content)
                 .isDeleted(false)
-                .count(0L)
+                .likeCount(0L)
                 .user(user)
                 .orderDetail(orderDetail)
                 .product(product)
@@ -202,7 +200,6 @@ public class ReviewLikeRepositoryTest {
 
     private ReviewLike createAndSaveReviewLike(boolean status, User user, Review review) {
         return reviewLikeRepository.save(ReviewLike.builder()
-                .isLike(status)
                 .user(user)
                 .review(review)
                 .build());

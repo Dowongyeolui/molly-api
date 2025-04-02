@@ -11,7 +11,7 @@ import org.example.mollyapi.product.entity.Product;
 import org.example.mollyapi.product.entity.ProductItem;
 import org.example.mollyapi.product.repository.ProductItemRepository;
 import org.example.mollyapi.product.repository.ProductRepository;
-import org.example.mollyapi.review.dto.request.UpdateReviewLikeReqDto;
+import org.example.mollyapi.review.dto.request.ReviewLikeReqDto;
 import org.example.mollyapi.review.entity.Review;
 import org.example.mollyapi.review.entity.ReviewLike;
 import org.example.mollyapi.review.repository.ReviewLikeRepository;
@@ -80,14 +80,14 @@ public class ReviewLikeServiceTest {
         OrderDetail testOrderDetail = createAndSaveOrderDetail(testOrder, testItem, testCart.getQuantity(), testCart.getCartId());
         Review testReview = createAndSaveReview(testUser, testOrderDetail, testProduct, "Test content");
 
-        UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(testReview.getId(), true);
+        ReviewLikeReqDto likeReqDto = new ReviewLikeReqDto(testReview.getId(), true);
 
         // when
         reviewLikeService.changeReviewLike(likeReqDto, testUser.getUserId());
-        ReviewLike newReviewLike = reviewLikeRepository.findByReviewIdAndUserUserId(testReview.getId(), testUser.getUserId());
+        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserId(testReview.getId(), testUser.getUserId());
 
         // then
-        assertThat(newReviewLike.getIsLike()).isTrue();
+        assertThat(reviewLike).isNotNull();
     }
 
     @DisplayName("리뷰 좋아요 상태를 변경한다. (이미 존재하는 좋아요 없데이트")
@@ -103,16 +103,16 @@ public class ReviewLikeServiceTest {
         OrderDetail testOrderDetail = createAndSaveOrderDetail(testOrder, testItem, testCart.getQuantity(), testCart.getCartId());
         Review testReview = createAndSaveReview(testUser, testOrderDetail, testProduct, "Test content");
 
-        UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(testReview.getId(), status);
+        ReviewLikeReqDto likeReqDto = new ReviewLikeReqDto(testReview.getId(), status);
 
         createAndSaveReviewLike(false, testUser, testReview); //좋아요 생성
 
         // when
         reviewLikeService.changeReviewLike(likeReqDto, testUser.getUserId());
-        ReviewLike newReviewLike = reviewLikeRepository.findByReviewIdAndUserUserId(testReview.getId(), testUser.getUserId());
+        ReviewLike reviewLike = reviewLikeRepository.findByReviewIdAndUserId(testReview.getId(), testUser.getUserId());
 
         // then
-        assertThat(newReviewLike.getIsLike()).isEqualTo(status);
+        assertThat(reviewLike).isNotNull();
     }
 
     @DisplayName("존재하지 않는 사용자가 리뷰를 등록하려고 하면 예외가 발생한다.")
@@ -128,7 +128,7 @@ public class ReviewLikeServiceTest {
         Review testReview = createAndSaveReview(testUser, testOrderDetail, testProduct, "Test content");
 
         Long userId = 0L;
-        UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(testReview.getId(), true);
+        ReviewLikeReqDto likeReqDto = new ReviewLikeReqDto(testReview.getId(), true);
 
         // when & then
         assertThatThrownBy(() -> reviewLikeService.changeReviewLike(likeReqDto, userId))
@@ -142,7 +142,7 @@ public class ReviewLikeServiceTest {
         // given
         User testUser = createAndSaveUser("사과", "김사과");
         Long reviewId = 999L;
-        UpdateReviewLikeReqDto likeReqDto = new UpdateReviewLikeReqDto(reviewId, true);
+        ReviewLikeReqDto likeReqDto = new ReviewLikeReqDto(reviewId, true);
 
         // when & then
         assertThatThrownBy(() -> reviewLikeService.changeReviewLike(likeReqDto, testUser.getUserId()))
@@ -216,7 +216,7 @@ public class ReviewLikeServiceTest {
         return reviewRepository.save(Review.builder()
                 .content(content)
                 .isDeleted(false)
-                .count(0L)
+                .likeCount(0L)
                 .user(user)
                 .orderDetail(orderDetail)
                 .product(product)
@@ -225,7 +225,6 @@ public class ReviewLikeServiceTest {
 
     private void createAndSaveReviewLike(boolean status, User user, Review review) {
         reviewLikeRepository.save(ReviewLike.builder()
-                .isLike(status)
                 .user(user)
                 .review(review)
                 .build());

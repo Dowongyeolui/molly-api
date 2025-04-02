@@ -111,7 +111,7 @@ public class TrendingReviewServiceTest {
         return reviewRepository.save(Review.builder()
                 .content(content)
                 .isDeleted(false)
-                .count(0L)
+                .likeCount(0L)
                 .user(user)
                 .orderDetail(null)
                 .product(product)
@@ -120,7 +120,6 @@ public class TrendingReviewServiceTest {
 
     private void createAndSaveReviewLike(boolean status, User user, Review review) {
         reviewLikeRepository.save(ReviewLike.builder()
-                .isLike(status)
                 .user(user)
                 .review(review)
                 .build());
