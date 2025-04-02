@@ -657,7 +657,7 @@ public class ReviewServiceTest {
         return reviewRepository.save(Review.builder()
                 .content(content)
                 .isDeleted(false)
-                .count(0L)
+                .likeCount(0L)
                 .user(user)
                 .orderDetail(orderDetail)
                 .product(product)
@@ -675,7 +675,6 @@ public class ReviewServiceTest {
 
     private ReviewLike createAndSaveReviewLike(boolean status, User user, Review review) {
         return reviewLikeRepository.save(ReviewLike.builder()
-                .isLike(status)
                 .user(user)
                 .review(review)
                 .build());
