@@ -81,4 +81,8 @@ public class Review extends Base {
     public void decreaseLikeCount() {
         this.likeCount--;
     }
+
+    public void updateLikeCount(Long likeCount) {
+        this.likeCount = likeCount;
+    }
 }
