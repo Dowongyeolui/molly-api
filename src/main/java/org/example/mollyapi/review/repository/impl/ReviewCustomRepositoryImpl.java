@@ -4,10 +4,12 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import org.example.mollyapi.review.dto.response.MyReviewInfoDto;
 import org.example.mollyapi.review.dto.response.ReviewInfoDto;
 import org.example.mollyapi.review.dto.response.TrendingReviewResDto;
+import org.example.mollyapi.review.entity.Review;
 import org.example.mollyapi.review.repository.ReviewCustomRepository;
 import org.springframework.data.domain.Pageable;
 
@@ -114,5 +116,22 @@ public class ReviewCustomRepositoryImpl implements ReviewCustomRepository {
                 .orderBy(reviewLike.count().desc(), review.createdAt.desc())
                 .limit(12)
                 .fetch();
+    }
+
+    @Override
+    public Review getReviewWithLock(Long reviewId) {
+        return jpaQueryFactory.selectFrom(review)
+                .where(review.id.eq(reviewId)
+                        .and(review.isDeleted.eq(Boolean.FALSE)))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+    }
+
+    @Override
+    public Review getReview(Long reviewId) {
+        return jpaQueryFactory.selectFrom(review)
+                .where(review.id.eq(reviewId)
+                        .and(review.isDeleted.eq(Boolean.FALSE)))
+                .fetchOne();
     }
 }

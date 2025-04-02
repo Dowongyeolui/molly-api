@@ -1,24 +1,22 @@
 package org.example.mollyapi.review.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.mollyapi.common.exception.CustomException;
-import org.example.mollyapi.review.dto.request.UpdateReviewLikeReqDto;
+import lombok.extern.slf4j.Slf4j;
+import org.example.mollyapi.review.dto.request.ReviewLikeReqDto;
 import org.example.mollyapi.review.entity.Review;
 import org.example.mollyapi.review.entity.ReviewLike;
 import org.example.mollyapi.review.repository.ReviewLikeRepository;
-import org.example.mollyapi.review.repository.ReviewRepository;
 import org.example.mollyapi.user.entity.User;
 import org.example.mollyapi.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.example.mollyapi.common.exception.error.impl.ReviewError.NOT_EXIST_REVIEW;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewLikeService {
     private final UserService userService;
-    private final ReviewRepository reviewRep;
+    private final ReviewService reviewService;
     private final ReviewLikeRepository reviewLikeRep;
 
     /**
@@ -27,19 +25,15 @@ public class ReviewLikeService {
      * @param userId 사용자 PK
      * */
     @Transactional
-    public void changeReviewLike(UpdateReviewLikeReqDto likeDto, Long userId) {
-        // 가입된 사용자 여부 체크
+    public void changeReviewLike(ReviewLikeReqDto likeDto, Long userId) {
+        // 사용자 및 리뷰 여부 체크
         User user = userService.findByUser(userId);
-
-        // 해당 리뷰 존재 여부 체크
-        Review review = reviewRep.findById(likeDto.reviewId())
-                .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
+        Review review = reviewService.findByReviewWithWriteLock(likeDto.reviewId());
 
         // 사용자가 이전에 누른 좋아요가 있는 지
-        ReviewLike reviewLike = reviewLikeRep.findByReviewIdAndUserUserId(likeDto.reviewId(), userId);
+        ReviewLike reviewLike = reviewLikeRep.findByReviewIdAndUserId(review.getId(), userId);
 
-        // ReviewLike Entity에 데이터를 추가한 적이 없을 경우
-        if(reviewLike == null) {
+        if (reviewLike == null && likeDto.status()) {
             // 좋아요 생성
             reviewLike = ReviewLike.builder()
                     .user(user)
@@ -48,7 +42,7 @@ public class ReviewLikeService {
 
             reviewLikeRep.save(reviewLike);
             review.increaseLikeCount();
-        } else { // 이미 좋아요를 눌렀던 적이 있을 경우
+        } else if (reviewLike != null && !likeDto.status()) { // 이미 좋아요를 눌렀던 적이 있을 경우
             reviewLikeRep.delete(reviewLike);
             review.decreaseLikeCount();
         }

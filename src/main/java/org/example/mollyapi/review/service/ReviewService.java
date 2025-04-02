@@ -266,4 +266,26 @@ public class ReviewService {
         return reviewRep.findByIdAndUserUserIdAndIsDeleted(reviewId, userId, isDeleted)
                 .orElseThrow(() -> new CustomException(NOT_EXIST_REVIEW));
     }
+
+    /**
+     * 해당 리뷰가 존재하는 지 체크
+     * @param reviewId 리뷰 PK
+     * @return Review Entity
+     * */
+    public Review findByReview(Long reviewId) {
+        Review review = reviewRep.getReview(reviewId);
+        if(review == null) throw new CustomException(NOT_EXIST_REVIEW);
+        return review;
+    }
+
+    /**
+     * 해당 리뷰가 존재하는 지 체크
+     * @param reviewId 리뷰 PK
+     * @return Review Entity
+     * */
+    public Review findByReviewWithWriteLock(Long reviewId) {
+        Review review = reviewRep.getReviewWithLock(reviewId);
+        if(review == null) throw new CustomException(NOT_EXIST_REVIEW);
+        return review;
+    }
 }

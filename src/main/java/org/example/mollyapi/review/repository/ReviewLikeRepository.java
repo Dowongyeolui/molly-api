@@ -6,8 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-public interface ReviewLikeRepository extends JpaRepository<ReviewLike, Long> {
-    ReviewLike findByReviewIdAndUserUserId(Long reviewId, Long userId);
+public interface ReviewLikeRepository extends JpaRepository<ReviewLike, Long>, ReviewLikeCustomRepository {
     void deleteAllByReviewId(Long reviewId);
     @Transactional
     void deleteAllByReviewIdIn(List<Long> reviewIds);
